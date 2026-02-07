@@ -29,7 +29,7 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 // Pages where bottom nav should be hidden
-const hideNavPages = ['/login', '/create-event', '/create-post', '/messaging', '/settings', '/strava', '/history', '/notifications'];
+const hideNavPages = ['/login', '/create-event', '/create-post', '/settings', '/strava', '/history', '/notifications'];
 
 const AppContent = () => {
   const location = useLocation();

@@ -51,7 +51,6 @@ const SettingsPage = () => {
       title: 'Données',
       items: [
         { icon: Trash2, label: 'Réinitialiser les données', desc: 'Revenir aux données initiales', action: handleReset, danger: true },
-        { icon: LogOut, label: 'Se déconnecter', desc: '', action: handleLogout, danger: true },
       ],
     },
   ];

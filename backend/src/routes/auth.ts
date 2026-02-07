@@ -7,6 +7,31 @@ import { authenticateToken, generateToken, AuthRequest } from '../middleware/aut
 
 const router = Router();
 
+// Transform backend user to frontend user structure
+function toFrontendUser(user: DbUser) {
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    cin: '',  // Not used anymore
+    role: user.role,
+    group: user.group_name,
+    avatar: user.avatar,
+    joinDate: user.created_at,
+    stats: {
+      totalDistance: user.distance,
+      totalRuns: user.runs,
+      avgPace: '5:30',  // Default value
+      streak: 0,
+      ranking: 1,
+    },
+    strava: {
+      connected: user.strava_connected,
+      athleteId: user.strava_id || undefined,
+    },
+  };
+}
+
 // POST /api/auth/register
 router.post('/register', async (req, res) => {
   try {
@@ -63,13 +88,10 @@ router.post('/register', async (req, res) => {
     // Generate token
     const token = generateToken(newUser.id, newUser.role);
 
-    // Return user without password
-    const { password: _, ...userWithoutPassword } = newUser;
-
     res.status(201).json({
       success: true,
       data: {
-        user: userWithoutPassword,
+        user: toFrontendUser(newUser),
         token,
       },
     });
@@ -121,13 +143,10 @@ router.post('/login', async (req, res) => {
     // Generate token
     const token = generateToken(user.id, user.role);
 
-    // Return user without password
-    const { password: _, ...userWithoutPassword } = user;
-
     res.json({
       success: true,
       data: {
-        user: userWithoutPassword,
+        user: toFrontendUser(user),
         token,
       },
     });
@@ -151,11 +170,9 @@ router.get('/me', authenticateToken, (req: AuthRequest, res) => {
       });
     }
 
-    const { password: _, ...userWithoutPassword } = user;
-
     res.json({
       success: true,
-      data: { user: userWithoutPassword },
+      data: { user: toFrontendUser(user) },
     });
   } catch (error) {
     console.error('Get me error:', error);

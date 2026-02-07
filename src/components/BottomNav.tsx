@@ -1,10 +1,10 @@
 import { NavLink } from "react-router-dom";
-import { Home, Calendar, MapPin, Users, User } from "lucide-react";
+import { Home, Calendar, MessageSquare, Users, User } from "lucide-react";
 
 const tabs = [
   { to: "/", icon: Home, label: "Accueil" },
-  { to: "/calendar", icon: Calendar, label: "Calendrier" },
-  { to: "/map", icon: MapPin, label: "Carte" },
+  { to: "/calendar", icon: Calendar, label: "Événements" },
+  { to: "/messaging", icon: MessageSquare, label: "Messages" },
   { to: "/community", icon: Users, label: "Communauté" },
   { to: "/profile", icon: User, label: "Profil" },
 ];

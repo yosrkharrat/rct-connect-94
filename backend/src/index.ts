@@ -38,7 +38,7 @@ if (!existsSync(dataDir)) {
 
 // Middleware
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:8080',
+  origin: process.env.FRONTEND_URL || process.env.CORS_ORIGIN || 'http://localhost:8080',
   credentials: true,
 }));
 app.use(express.json());

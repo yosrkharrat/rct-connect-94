@@ -12,6 +12,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   loginAsVisitor: () => void;
   logout: () => void;
+  updateUser: (updates: Partial<User & { bio?: string }>) => void;
   hasRole: (...roles: UserRole[]) => boolean;
   isAdmin: boolean;
   isCoach: boolean;
@@ -31,13 +32,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     initStore();
     const token = getAuthToken();
     const savedVisitor = localStorage.getItem('rct_visitor');
+    const savedProfile = localStorage.getItem('rct_user_profile');
     
     if (token) {
       // Verify token and get user data
       authApi.me()
         .then(response => {
           if (response.success && response.data?.user) {
-            const mappedUser = mapApiUser(response.data.user);
+            let mappedUser = mapApiUser(response.data.user);
+            // Merge with saved profile data (name, bio, etc.)
+            if (savedProfile) {
+              try {
+                const profileData = JSON.parse(savedProfile);
+                if (profileData.id === mappedUser.id) {
+                  mappedUser = { ...mappedUser, ...profileData };
+                }
+              } catch (e) {}
+            }
             setUser(mappedUser);
           } else {
             setAuthToken(null);
@@ -85,6 +96,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('rct_visitor');
   };
 
+  const updateUser = (updates: Partial<User & { bio?: string }>) => {
+    if (user) {
+      const updatedUser = { ...user, ...updates };
+      setUser(updatedUser as User);
+      // Save to localStorage for persistence
+      localStorage.setItem('rct_user_profile', JSON.stringify(updatedUser));
+    }
+  };
+
   const hasRole = (...roles: UserRole[]) => {
     if (!user) return false;
     return roles.includes(user.role);
@@ -96,6 +116,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const canCreateEvents = hasRole('admin', 'coach', 'group_admin');
   const canManageUsers = hasRole('admin');
 
+  // Show loading screen while checking auth
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Chargement...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <AuthContext.Provider value={{
       user,
@@ -105,6 +137,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       login,
       loginAsVisitor,
       logout,
+      updateUser,
       hasRole,
       isAdmin,
       isCoach,

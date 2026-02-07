@@ -84,25 +84,10 @@ const HomePage = () => {
           <p className="font-display font-bold text-lg text-primary-foreground drop-shadow-lg">
             {isLoggedIn ? `Salut ${user?.name.split(' ')[0]}! 🏃‍♂️` : 'Depuis 2016, on court ensemble 🇹🇳'}
           </p>
-          <p className="text-xs text-primary-foreground/80 mt-0.5 drop-shadow">125 coureurs · Fondé le 21/04/2016</p>
         </div>
       </div>
 
       <StoriesBar />
-
-      {/* Quick Stats */}
-      <div className="grid grid-cols-3 gap-3 px-4 mb-4">
-        {[
-          { value: '125', label: 'Membres' },
-          { value: user ? `${user.stats.totalDistance || 0}` : '2.4K', label: user ? 'Mes km' : 'Km/semaine' },
-          { value: `${events.length || 0}`, label: 'Événements' },
-        ].map(stat => (
-          <div key={stat.label} className="bg-card rounded-2xl rct-shadow-card p-3 text-center">
-            <p className="font-display font-extrabold text-xl rct-text-gradient">{stat.value}</p>
-            <p className="text-[11px] text-muted-foreground mt-0.5">{stat.label}</p>
-          </div>
-        ))}
-      </div>
 
       {/* Events */}
       <div className="px-4 mb-4">
