@@ -62,9 +62,9 @@ const AppContent = () => {
   }, []);
 
   // Redirect visitors from non-allowed pages
-  const isAllowedForVisitor = ['/calendar', '/login', '/event/'].some(
+  const isAllowedForVisitor = ['/', '/calendar', '/login', '/event/'].some(
     path => location.pathname === path || location.pathname.startsWith('/event/')
-  ) || location.pathname === '/calendar';
+  ) || location.pathname === '/calendar' || location.pathname === '/';
   
   if (isVisitor && !isLoggedIn && !isAllowedForVisitor) {
     return <Navigate to="/calendar" replace />;
@@ -76,7 +76,7 @@ const AppContent = () => {
       <div className="w-full min-h-screen bg-background relative safe-top">
         <main id="main-content" tabIndex={-1}>
           <Routes>
-        <Route path="/" element={isVisitor && !isLoggedIn ? <Navigate to="/calendar" replace /> : <HomePage />} />
+        <Route path="/" element={<HomePage />} />
         <Route path="/calendar" element={<CalendarPage />} />
         <Route path="/map" element={<RequireAuth><MapPage /></RequireAuth>} />
         <Route path="/community" element={<RequireAuth><CommunityPage /></RequireAuth>} />

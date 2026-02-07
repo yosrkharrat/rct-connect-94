@@ -1,30 +1,13 @@
 import { v4 as uuidv4 } from 'uuid';
 import bcrypt from 'bcryptjs';
-import { dbHelper, DbUser, DbEvent, DbEventParticipant, DbPost, DbPostLike, DbComment, DbStory, DbCourse, DbRating, DbNotification, DbConversation, DbConversationParticipant, DbMessage, DbUserSettings } from './db';
+import { dbHelper, DbUser, DbEvent, DbEventParticipant, DbPost, DbPostLike, DbComment, DbStory, DbCourse, DbRating, DbNotification, DbConversation, DbConversationParticipant, DbMessage, DbUserSettings, DbChatGroup, DbChatGroupMember, DbChatMessage } from './db';
 
 async function seed() {
-  // Wait for db to be initialized
-  await dbHelper.init();
-
-  console.log('🌱 Seeding database...\n');
+  console.log('🌱 Seeding SQLite database...\n');
 
   // Clear existing data
   console.log('Clearing existing data...');
-  dbHelper.data.users = [];
-  dbHelper.data.events = [];
-  dbHelper.data.event_participants = [];
-  dbHelper.data.posts = [];
-  dbHelper.data.post_likes = [];
-  dbHelper.data.comments = [];
-  dbHelper.data.stories = [];
-  dbHelper.data.story_views = [];
-  dbHelper.data.courses = [];
-  dbHelper.data.ratings = [];
-  dbHelper.data.notifications = [];
-  dbHelper.data.conversations = [];
-  dbHelper.data.conversation_participants = [];
-  dbHelper.data.messages = [];
-  dbHelper.data.user_settings = [];
+  dbHelper.clearAllData();
 
   // Generate IDs
   const userIds = {
@@ -78,18 +61,18 @@ async function seed() {
     { id: userIds.member4, email: 'amira@rct.tn', password: hashedPassword, name: 'Amira Bouazizi', avatar: 'https://i.pravatar.cc/150?u=amira', role: 'member', group_name: 'Débutant', distance: 89, runs: 15, joined_events: 8, strava_connected: false, strava_id: null, created_at: now, updated_at: now },
     { id: userIds.member5, email: 'karim@rct.tn', password: hashedPassword, name: 'Karim Mejri', avatar: 'https://i.pravatar.cc/150?u=karim', role: 'member', group_name: 'Élite', distance: 890, runs: 112, joined_events: 67, strava_connected: true, strava_id: 'strava_karim', created_at: now, updated_at: now },
   ];
-  dbHelper.data.users.push(...users);
+  users.forEach(user => dbHelper.createUser(user));
 
   // Seed User Settings
   console.log('Creating user settings...');
   const settings: DbUserSettings[] = Object.values(userIds).map(userId => ({
     user_id: userId,
-    theme: 'system',
-    language: 'fr',
+    theme: 'system' as const,
+    language: 'fr' as const,
     notifications_enabled: true,
     email_notifications: true,
   }));
-  dbHelper.data.user_settings.push(...settings);
+  settings.forEach(s => dbHelper.createUserSettings(s));
 
   // Seed Events
   console.log('Creating events...');
@@ -164,7 +147,7 @@ async function seed() {
       updated_at: now,
     },
   ];
-  dbHelper.data.events.push(...events);
+  events.forEach(event => dbHelper.createEvent(event));
 
   // Seed Event Participants
   console.log('Adding event participants...');
@@ -182,7 +165,7 @@ async function seed() {
     { event_id: eventIds.beginners, user_id: userIds.member3, joined_at: now },
     { event_id: eventIds.beginners, user_id: userIds.member4, joined_at: now },
   ];
-  dbHelper.data.event_participants.push(...participants);
+  participants.forEach(p => dbHelper.addEventParticipant(p));
 
   // Seed Courses
   console.log('Creating courses...');
@@ -240,7 +223,7 @@ async function seed() {
       updated_at: now,
     },
   ];
-  dbHelper.data.courses.push(...courses);
+  courses.forEach(course => dbHelper.createCourse(course));
 
   // Seed Ratings
   console.log('Adding course ratings...');
@@ -250,7 +233,7 @@ async function seed() {
     { id: uuidv4(), course_id: courseIds.belvedere, user_id: userIds.member3, rating: 4, comment: 'Super pour s\'entraîner sur les côtes.', created_at: now },
     { id: uuidv4(), course_id: courseIds.carthage, user_id: userIds.member5, rating: 5, comment: 'Magnifique parcours, vue exceptionnelle!', created_at: now },
   ];
-  dbHelper.data.ratings.push(...ratings);
+  ratings.forEach(rating => dbHelper.createRating(rating));
 
   // Seed Posts
   console.log('Creating posts...');
@@ -280,7 +263,7 @@ async function seed() {
       updated_at: now,
     },
   ];
-  dbHelper.data.posts.push(...posts);
+  posts.forEach(post => dbHelper.createPost(post));
 
   // Seed Post Likes
   console.log('Adding post likes...');
@@ -298,7 +281,7 @@ async function seed() {
     { post_id: postIds.post3, user_id: userIds.member1, created_at: now },
     { post_id: postIds.post3, user_id: userIds.member5, created_at: now },
   ];
-  dbHelper.data.post_likes.push(...likes);
+  likes.forEach(like => dbHelper.addPostLike(like));
 
   // Seed Comments
   console.log('Adding comments...');
@@ -308,7 +291,7 @@ async function seed() {
     { id: uuidv4(), post_id: postIds.post2, author_id: userIds.coach, content: 'Félicitations Mohamed ! Belle progression !', created_at: now },
     { id: uuidv4(), post_id: postIds.post2, author_id: userIds.admin, content: 'Bravo ! Le marathon c\'est pour quand ? 😄', created_at: now },
   ];
-  dbHelper.data.comments.push(...comments);
+  comments.forEach(comment => dbHelper.createComment(comment));
 
   // Seed Stories
   console.log('Creating stories...');
@@ -320,7 +303,7 @@ async function seed() {
     { id: storyIds.story2, user_id: userIds.member1, image: 'https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=400', caption: 'Nouveau PR sur 10km ! 🎉', expires_at: storyExpiry.toISOString(), created_at: now },
     { id: storyIds.story3, user_id: userIds.admin, image: 'https://images.unsplash.com/photo-1571008887538-b36bb32f4571?w=400', caption: 'RCT en force 💪🇹🇳', expires_at: storyExpiry.toISOString(), created_at: now },
   ];
-  dbHelper.data.stories.push(...stories);
+  stories.forEach(story => dbHelper.createStory(story));
 
   // Seed Notifications
   console.log('Creating notifications...');
@@ -330,7 +313,7 @@ async function seed() {
     { id: uuidv4(), user_id: userIds.member2, type: 'comment', title: 'Nouveau commentaire', message: 'Mohamed a commenté une publication', related_id: postIds.post1, read: false, created_at: now },
     { id: uuidv4(), user_id: userIds.member3, type: 'reminder', title: 'Rappel', message: 'L\'événement Initiation Course à Pied commence bientôt', related_id: eventIds.beginners, read: false, created_at: now },
   ];
-  dbHelper.data.notifications.push(...notifications);
+  notifications.forEach(n => dbHelper.createNotification(n));
 
   // Seed Conversations
   console.log('Creating conversations...');
@@ -341,7 +324,7 @@ async function seed() {
     { id: conversationId1, created_at: now, updated_at: now },
     { id: conversationId2, created_at: now, updated_at: now },
   ];
-  dbHelper.data.conversations.push(...conversations);
+  conversations.forEach(c => dbHelper.createConversation(c));
 
   const convParticipants: DbConversationParticipant[] = [
     { conversation_id: conversationId1, user_id: userIds.coach, joined_at: now },
@@ -349,7 +332,7 @@ async function seed() {
     { conversation_id: conversationId2, user_id: userIds.admin, joined_at: now },
     { conversation_id: conversationId2, user_id: userIds.member3, joined_at: now },
   ];
-  dbHelper.data.conversation_participants.push(...convParticipants);
+  convParticipants.forEach(p => dbHelper.addConversationParticipant(p));
 
   // Seed Messages
   console.log('Creating messages...');
@@ -360,12 +343,63 @@ async function seed() {
     { id: uuidv4(), conversation_id: conversationId2, sender_id: userIds.admin, content: 'Bienvenue au club Youssef ! N\'hésite pas si tu as des questions.', read: true, created_at: now },
     { id: uuidv4(), conversation_id: conversationId2, sender_id: userIds.member3, content: 'Merci beaucoup ! J\'ai hâte de participer à ma première sortie.', read: false, created_at: now },
   ];
-  dbHelper.data.messages.push(...messages);
+  messages.forEach(m => dbHelper.createMessage(m));
 
-  // Write all data
-  await dbHelper.write();
+  // Seed Chat Groups
+  console.log('Creating chat groups...');
+  const chatGroupIds = {
+    general: uuidv4(),
+    elite: uuidv4(),
+    intermediate: uuidv4(),
+    beginners: uuidv4(),
+  };
 
-  console.log('\n✅ Database seeded successfully!');
+  const chatGroups: DbChatGroup[] = [
+    { id: chatGroupIds.general, name: 'Général RCT', description: 'Groupe principal du club pour les annonces et discussions générales', created_by: userIds.admin, created_at: now, updated_at: now },
+    { id: chatGroupIds.elite, name: 'Groupe Élite', description: 'Discussions et entraînements pour le groupe Élite', created_by: userIds.coach, created_at: now, updated_at: now },
+    { id: chatGroupIds.intermediate, name: 'Groupe Intermédiaire', description: 'Discussions et entraînements pour le groupe Intermédiaire', created_by: userIds.coach, created_at: now, updated_at: now },
+    { id: chatGroupIds.beginners, name: 'Groupe Débutant', description: 'Conseils et discussions pour les nouveaux coureurs', created_by: userIds.coach, created_at: now, updated_at: now },
+  ];
+  chatGroups.forEach(g => dbHelper.createChatGroup(g));
+
+  // Add chat group members
+  console.log('Adding chat group members...');
+  const chatGroupMembers: DbChatGroupMember[] = [
+    // General group - all users
+    { group_id: chatGroupIds.general, user_id: userIds.admin, role: 'admin', joined_at: now },
+    { group_id: chatGroupIds.general, user_id: userIds.coach, role: 'admin', joined_at: now },
+    { group_id: chatGroupIds.general, user_id: userIds.member1, role: 'member', joined_at: now },
+    { group_id: chatGroupIds.general, user_id: userIds.member2, role: 'member', joined_at: now },
+    { group_id: chatGroupIds.general, user_id: userIds.member3, role: 'member', joined_at: now },
+    { group_id: chatGroupIds.general, user_id: userIds.member4, role: 'member', joined_at: now },
+    { group_id: chatGroupIds.general, user_id: userIds.member5, role: 'member', joined_at: now },
+    // Elite group
+    { group_id: chatGroupIds.elite, user_id: userIds.admin, role: 'admin', joined_at: now },
+    { group_id: chatGroupIds.elite, user_id: userIds.coach, role: 'admin', joined_at: now },
+    { group_id: chatGroupIds.elite, user_id: userIds.member5, role: 'member', joined_at: now },
+    // Intermediate group
+    { group_id: chatGroupIds.intermediate, user_id: userIds.coach, role: 'admin', joined_at: now },
+    { group_id: chatGroupIds.intermediate, user_id: userIds.member1, role: 'member', joined_at: now },
+    { group_id: chatGroupIds.intermediate, user_id: userIds.member2, role: 'member', joined_at: now },
+    // Beginners group
+    { group_id: chatGroupIds.beginners, user_id: userIds.coach, role: 'admin', joined_at: now },
+    { group_id: chatGroupIds.beginners, user_id: userIds.member3, role: 'member', joined_at: now },
+    { group_id: chatGroupIds.beginners, user_id: userIds.member4, role: 'member', joined_at: now },
+  ];
+  chatGroupMembers.forEach(m => dbHelper.addChatGroupMember(m));
+
+  // Seed Chat Messages
+  console.log('Creating chat messages...');
+  const chatMessages: DbChatMessage[] = [
+    { id: uuidv4(), group_id: chatGroupIds.general, sender_id: userIds.admin, content: 'Bienvenue dans le groupe général du RCT ! 🏃‍♂️', created_at: now },
+    { id: uuidv4(), group_id: chatGroupIds.general, sender_id: userIds.coach, content: 'N\'oubliez pas la sortie de samedi au Lac de Tunis, RDV à 7h !', created_at: now },
+    { id: uuidv4(), group_id: chatGroupIds.elite, sender_id: userIds.coach, content: 'Préparation semi-marathon : on augmente les volumes cette semaine', created_at: now },
+    { id: uuidv4(), group_id: chatGroupIds.intermediate, sender_id: userIds.coach, content: 'Bravo pour la sortie d\'hier ! Belles allures maintenues 💪', created_at: now },
+    { id: uuidv4(), group_id: chatGroupIds.beginners, sender_id: userIds.coach, content: 'Rappel : on court en aisance respiratoire, pas besoin de forcer !', created_at: now },
+  ];
+  chatMessages.forEach(m => dbHelper.createChatMessage(m));
+
+  console.log('\n✅ SQLite database seeded successfully!');
   console.log('\n📧 Test accounts:');
   console.log('  Admin:  admin@rct.tn / password123');
   console.log('  Coach:  coach@rct.tn / password123');

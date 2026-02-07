@@ -9,7 +9,7 @@ interface PostCardProps {
 }
 
 const PostCard = ({ post }: PostCardProps) => {
-  const { user } = useAuth();
+  const { user, isVisitor } = useAuth();
   const users = getUsers();
   const author = users.find(u => u.id === post.authorId);
   const [liked, setLiked] = useState(user ? post.likes?.includes(user.id) : false);
@@ -19,7 +19,7 @@ const PostCard = ({ post }: PostCardProps) => {
   const [comments, setComments] = useState(post.comments || []);
 
   const handleLike = () => {
-    if (!user) return;
+    if (!user || isVisitor) return;
     toggleLike(post.id, user.id);
     if (liked) {
       setLikeCount(c => c - 1);
@@ -30,7 +30,7 @@ const PostCard = ({ post }: PostCardProps) => {
   };
 
   const handleComment = () => {
-    if (!user || !commentText.trim()) return;
+    if (!user || isVisitor || !commentText.trim()) return;
     const newComment: Comment = {
       id: Date.now().toString(),
       authorId: user.id,
@@ -53,7 +53,7 @@ const PostCard = ({ post }: PostCardProps) => {
   };
 
   return (
-    <div className="bg-card rounded-2xl rct-shadow-card overflow-hidden">
+    <div className="overflow-hidden border-b border-border pb-4">
       {/* Author header */}
       <div className="flex items-center gap-3 p-4 pb-2">
         <div className="w-9 h-9 rounded-full rct-gradient-hero flex items-center justify-center text-white text-sm font-bold">
@@ -91,11 +91,21 @@ const PostCard = ({ post }: PostCardProps) => {
 
       {/* Actions */}
       <div className="px-4 py-3 flex items-center gap-5">
-        <button onClick={handleLike} className="flex items-center gap-1.5 transition-all active:scale-90">
+        <button 
+          onClick={handleLike} 
+          disabled={isVisitor}
+          className={`flex items-center gap-1.5 transition-all ${isVisitor ? 'opacity-50 cursor-not-allowed' : 'active:scale-90'}`}
+          title={isVisitor ? 'Connectez-vous pour aimer' : ''}
+        >
           <Heart className={`w-5 h-5 ${liked ? 'fill-red-500 text-red-500' : 'text-muted-foreground'}`} />
           <span className="text-sm font-medium">{likeCount}</span>
         </button>
-        <button onClick={() => setShowComments(!showComments)} className="flex items-center gap-1.5">
+        <button 
+          onClick={() => setShowComments(!showComments)} 
+          disabled={isVisitor}
+          className={`flex items-center gap-1.5 ${isVisitor ? 'opacity-50 cursor-not-allowed' : ''}`}
+          title={isVisitor ? 'Connectez-vous pour commenter' : ''}
+        >
           <MessageCircle className="w-5 h-5 text-muted-foreground" />
           <span className="text-sm font-medium">{comments.length}</span>
         </button>
@@ -116,7 +126,7 @@ const PostCard = ({ post }: PostCardProps) => {
               </div>
             );
           })}
-          {user && (
+          {user && !isVisitor && (
             <div className="flex items-center gap-2 mt-2">
               <input
                 value={commentText}
@@ -129,6 +139,11 @@ const PostCard = ({ post }: PostCardProps) => {
                 className="w-8 h-8 rounded-full rct-gradient-hero flex items-center justify-center">
                 <Send className="w-4 h-4 text-white" />
               </button>
+            </div>
+          )}
+          {isVisitor && (
+            <div className="mt-2 text-center text-xs text-muted-foreground py-2 bg-muted/50 rounded-lg">
+              Connectez-vous pour commenter
             </div>
           )}
         </div>

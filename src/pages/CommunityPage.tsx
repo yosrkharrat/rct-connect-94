@@ -73,7 +73,7 @@ const CommunityPage = () => {
         ))}
       </div>
 
-      <div className="px-4 space-y-4">
+      <div className="px-4">
         {isLoading ? (
           <div className="bg-card rounded-2xl rct-shadow-card p-8 text-center">
             <p className="text-muted-foreground text-sm">Chargement...</p>

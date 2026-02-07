@@ -3,7 +3,7 @@ import { Home, Calendar, MessageSquare, Users, User, LogIn } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext";
 
 const allTabs = [
-  { to: "/", icon: Home, label: "Accueil", visitorAccess: false },
+  { to: "/", icon: Home, label: "Accueil", visitorAccess: true },
   { to: "/calendar", icon: Calendar, label: "Événements", visitorAccess: true },
   { to: "/messaging", icon: MessageSquare, label: "Messages", visitorAccess: false },
   { to: "/community", icon: Users, label: "Communauté", visitorAccess: false },
@@ -18,6 +18,7 @@ const BottomNav = () => {
   
   const tabs = isVisitorOnly 
     ? [
+        { to: "/", icon: Home, label: "Accueil" },
         { to: "/calendar", icon: Calendar, label: "Événements" },
         { to: "/login", icon: LogIn, label: "Connexion" },
       ]

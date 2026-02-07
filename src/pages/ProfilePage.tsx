@@ -4,8 +4,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { eventsApi, postsApi } from '@/lib/api';
 import { mapApiEvent, mapApiPost } from '@/lib/apiMappers';
 import {
-  Settings, Activity, Trophy, ChevronRight,
-  Shield, Star, LogIn, LogOut, Edit, X, Camera
+  Settings, Activity, Trophy, LogIn, LogOut, Edit, X, Camera,
+  Shield, Star, Grid3x3, LayoutList, PlayCircle, Image as ImageIcon
 } from 'lucide-react';
 import { RCTEvent, Post } from '@/types';
 
@@ -17,6 +17,8 @@ const ProfilePage = () => {
   const [isLoading, setIsLoading] = useState(true);
   
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showSettingsMenu, setShowSettingsMenu] = useState(false);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [editName, setEditName] = useState('');
   const [editBio, setEditBio] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -104,89 +106,236 @@ const ProfilePage = () => {
   const badge = roleBadge();
   const BadgeIcon = badge.icon;
 
-  const menuItems = [
-    { label: 'Strava', icon: Activity, path: '/strava' },
-    { label: 'Réglages', icon: Settings, path: '/settings' },
-  ];
-
   return (
-    <div className="pb-20 pt-6">
-      {/* Profile Header */}
-      <div className="px-4 mb-6">
-        <div className="bg-card rounded-2xl rct-shadow-card p-6">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="w-16 h-16 rounded-full rct-gradient-hero flex items-center justify-center rct-glow-blue relative">
-              <span className="text-2xl font-bold text-white">
-                {user.name.split(' ').map(n => n[0]).join('')}
-              </span>
-            </div>
-            <div className="flex-1">
-              <h2 className="font-display font-extrabold text-xl">{user.name}</h2>
-              <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs text-white ${badge.color} mt-1`}>
-                <BadgeIcon className="w-3 h-3" />
-                {badge.label}
+    <div className="pb-20">
+      {/* Header with Settings */}
+      <div className="px-4 py-4 flex items-center justify-between border-b border-border">
+        <h1 className="font-display font-bold text-xl">{user.name.split(' ')[0]}</h1>
+        <div className="relative">
+          <button 
+            onClick={() => setShowSettingsMenu(!showSettingsMenu)}
+            className="w-10 h-10 rounded-full bg-muted flex items-center justify-center"
+          >
+            <Settings className="w-5 h-5" />
+          </button>
+          
+          {/* Settings Dropdown */}
+          {showSettingsMenu && (
+            <>
+              <div 
+                className="fixed inset-0 z-40" 
+                onClick={() => setShowSettingsMenu(false)}
+              />
+              <div className="absolute right-0 mt-2 w-56 bg-card rounded-xl rct-shadow-card overflow-hidden z-50 border border-border">
+                <button
+                  onClick={() => {
+                    setShowSettingsMenu(false);
+                    navigate('/settings');
+                  }}
+                  className="w-full px-4 py-3 flex items-center gap-3 hover:bg-muted transition-colors text-left"
+                >
+                  <Settings className="w-5 h-5" />
+                  <span className="font-medium">Réglages</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setShowSettingsMenu(false);
+                    navigate('/strava');
+                  }}
+                  className="w-full px-4 py-3 flex items-center gap-3 hover:bg-muted transition-colors text-left border-t border-border"
+                >
+                  <Activity className="w-5 h-5" />
+                  <span className="font-medium">Strava</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setShowSettingsMenu(false);
+                    handleLogout();
+                  }}
+                  className="w-full px-4 py-3 flex items-center gap-3 hover:bg-destructive/10 transition-colors text-left border-t border-border text-destructive"
+                >
+                  <LogOut className="w-5 h-5" />
+                  <span className="font-medium">Se déconnecter</span>
+                </button>
               </div>
-            </div>
-            <button 
-              onClick={openEditModal}
-              className="w-10 h-10 rounded-full bg-muted flex items-center justify-center"
-            >
-              <Edit className="w-5 h-5" />
-            </button>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Profile Info */}
+      <div className="px-4 py-4">
+        <div className="flex items-center gap-6 mb-4">
+          {/* Avatar */}
+          <div className="w-20 h-20 rounded-full rct-gradient-hero flex items-center justify-center rct-glow-blue">
+            <span className="text-2xl font-bold text-white">
+              {user.name.split(' ').map(n => n[0]).join('')}
+            </span>
           </div>
-          {/* Bio */}
+
+          {/* Stats */}
+          <div className="flex-1 flex justify-around">
+            <div className="text-center">
+              <p className="text-xl font-bold">{myPosts.length}</p>
+              <p className="text-xs text-muted-foreground">publications</p>
+            </div>
+            <div className="text-center">
+              <p className="text-xl font-bold">{myEvents.length}</p>
+              <p className="text-xs text-muted-foreground">événements</p>
+            </div>
+            <div className="text-center">
+              <p className="text-xl font-bold">{totalDistance.toFixed(0)}</p>
+              <p className="text-xs text-muted-foreground">km total</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Name and Bio */}
+        <div className="mb-3">
+          <div className="flex items-center gap-2 mb-1">
+            <h2 className="font-bold text-sm">{user.name}</h2>
+            <div className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] text-white ${badge.color}`}>
+              <BadgeIcon className="w-2.5 h-2.5" />
+              {badge.label}
+            </div>
+          </div>
           {(user as any).bio && (
-            <p className="text-sm text-muted-foreground mb-2">{(user as any).bio}</p>
+            <p className="text-sm">{(user as any).bio}</p>
           )}
           {user.group && (
-            <p className="text-xs text-muted-foreground">Groupe: <span className="font-semibold text-foreground">{user.group}</span></p>
+            <p className="text-xs text-muted-foreground mt-1">🏃‍♂️ {user.group}</p>
           )}
         </div>
+
+        {/* Edit Profile Button */}
+        <button
+          onClick={openEditModal}
+          className="w-full py-1.5 rounded-lg bg-muted font-semibold text-sm"
+        >
+          Modifier le profil
+        </button>
       </div>
 
-      {/* Stats */}
-      <div className="px-4 mb-6">
-        <div className="grid grid-cols-3 gap-3">
-          <div className="bg-card rounded-2xl rct-shadow-card p-4 text-center">
-            <p className="text-2xl font-extrabold rct-text-gradient">{totalDistance.toFixed(1)}</p>
-            <p className="text-xs text-muted-foreground">km total</p>
+      {/* Records Section */}
+      <div className="px-4 py-3 border-y border-border">
+        <h3 className="font-bold text-sm mb-2">📊 Records</h3>
+        <div className="grid grid-cols-3 gap-2">
+          <div className="bg-muted rounded-lg p-2 text-center">
+            <p className="text-lg font-bold">{totalDistance.toFixed(1)}</p>
+            <p className="text-[10px] text-muted-foreground">Distance totale</p>
           </div>
-          <div className="bg-card rounded-2xl rct-shadow-card p-4 text-center">
-            <p className="text-2xl font-extrabold rct-text-gradient">{myEvents.length}</p>
-            <p className="text-xs text-muted-foreground">événements</p>
+          <div className="bg-muted rounded-lg p-2 text-center">
+            <p className="text-lg font-bold">{user.runs || 0}</p>
+            <p className="text-[10px] text-muted-foreground">Sorties</p>
           </div>
-          <div className="bg-card rounded-2xl rct-shadow-card p-4 text-center">
-            <p className="text-2xl font-extrabold rct-text-gradient">{myPosts.length}</p>
-            <p className="text-xs text-muted-foreground">publications</p>
+          <div className="bg-muted rounded-lg p-2 text-center">
+            <p className="text-lg font-bold">{user.joinedEvents || 0}</p>
+            <p className="text-[10px] text-muted-foreground">Participations</p>
           </div>
         </div>
       </div>
 
-      {/* Menu */}
-      <div className="px-4 space-y-2">
-        {menuItems.map(item => (
-          <button key={item.label} onClick={() => navigate(item.path)}
-            className="w-full bg-card rounded-2xl rct-shadow-card p-4 flex items-center gap-4 active:scale-[.98] transition-transform">
-            <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center">
-              <item.icon className="w-5 h-5 text-foreground" />
-            </div>
-            <span className="flex-1 text-left font-semibold">{item.label}</span>
-            <ChevronRight className="w-5 h-5 text-muted-foreground" />
-          </button>
-        ))}
+      {/* View Toggle */}
+      <div className="flex border-b border-border">
+        <button
+          onClick={() => setViewMode('grid')}
+          className={`flex-1 py-3 flex items-center justify-center gap-2 border-b-2 transition-colors ${
+            viewMode === 'grid' 
+              ? 'border-foreground' 
+              : 'border-transparent text-muted-foreground'
+          }`}
+        >
+          <Grid3x3 className="w-5 h-5" />
+        </button>
+        <button
+          onClick={() => setViewMode('list')}
+          className={`flex-1 py-3 flex items-center justify-center gap-2 border-b-2 transition-colors ${
+            viewMode === 'list' 
+              ? 'border-foreground' 
+              : 'border-transparent text-muted-foreground'
+          }`}
+        >
+          <LayoutList className="w-5 h-5" />
+        </button>
       </div>
 
-      {/* Logout Button */}
-      <div className="px-4 mt-6">
-        <button 
-          onClick={handleLogout}
-          className="w-full bg-card rounded-2xl rct-shadow-card p-4 flex items-center gap-4 active:scale-[.98] transition-transform border border-destructive/20"
-        >
-          <div className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center">
-            <LogOut className="w-5 h-5 text-destructive" />
+      {/* Posts Grid/List */}
+      <div className="px-1">
+        {isLoading ? (
+          <div className="text-center py-12 text-muted-foreground text-sm">
+            Chargement...
           </div>
-          <span className="flex-1 text-left font-semibold text-destructive">Se déconnecter</span>
-        </button>
+        ) : myPosts.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground text-sm mb-2">Aucune publication</p>
+            <button 
+              onClick={() => navigate('/create-post')}
+              className="text-primary text-sm font-semibold"
+            >
+              Créer votre première publication
+            </button>
+          </div>
+        ) : viewMode === 'grid' ? (
+          <div className="grid grid-cols-3 gap-1">
+            {myPosts.map(post => (
+              <div 
+                key={post.id} 
+                className="aspect-square bg-muted relative overflow-hidden cursor-pointer"
+                onClick={() => navigate('/community')}
+              >
+                {post.image ? (
+                  <>
+                    <img 
+                      src={post.image} 
+                      alt="" 
+                      className="w-full h-full object-cover"
+                    />
+                    {post.content?.toLowerCase().includes('video') && (
+                      <div className="absolute top-1 right-1">
+                        <PlayCircle className="w-5 h-5 text-white drop-shadow-lg" />
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">
+                    <ImageIcon className="w-8 h-8 text-primary/40" />
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="divide-y divide-border">
+            {myPosts.map(post => (
+              <div 
+                key={post.id}
+                className="py-4 px-3 flex gap-3 cursor-pointer hover:bg-muted/50 transition-colors"
+                onClick={() => navigate('/community')}
+              >
+                {post.image ? (
+                  <div className="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 bg-muted">
+                    <img src={post.image} alt="" className="w-full h-full object-cover" />
+                  </div>
+                ) : (
+                  <div className="w-20 h-20 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center flex-shrink-0">
+                    <ImageIcon className="w-6 h-6 text-primary/40" />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm line-clamp-2">{post.content}</p>
+                  <div className="flex items-center gap-4 mt-1">
+                    <span className="text-xs text-muted-foreground">
+                      {post.likes?.length || 0} j'aime
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {post.comments?.length || 0} commentaires
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Edit Profile Modal */}

@@ -4,16 +4,14 @@ import { useNavigate } from 'react-router-dom';
 import heroBanner from '@/assets/hero-banner.jpg';
 import StoriesBar from '@/components/StoriesBar';
 import PostCard from '@/components/PostCard';
-import EventCard from '@/components/EventCard';
 import { useAuth } from '@/contexts/AuthContext';
-import { eventsApi, postsApi, notificationsApi } from '@/lib/api';
-import { mapApiEvent, mapApiPost } from '@/lib/apiMappers';
-import { RCTEvent, Post } from '@/types';
+import { postsApi, notificationsApi } from '@/lib/api';
+import { mapApiPost } from '@/lib/apiMappers';
+import { Post } from '@/types';
 
 const HomePage = () => {
   const { user, isLoggedIn } = useAuth();
   const navigate = useNavigate();
-  const [events, setEvents] = useState<RCTEvent[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
   const [unread, setUnread] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -22,13 +20,6 @@ const HomePage = () => {
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        // Fetch events
-        const eventsResponse = await eventsApi.getAll();
-        if (eventsResponse.success && eventsResponse.data) {
-          const mappedEvents = (eventsResponse.data as any[]).map(mapApiEvent);
-          setEvents(mappedEvents.slice(0, 3));
-        }
-
         // Fetch posts
         const postsResponse = await postsApi.getAll({ limit: 5 });
         if (postsResponse.success && postsResponse.data) {
@@ -79,23 +70,6 @@ const HomePage = () => {
 
       <StoriesBar />
 
-      {/* Events */}
-      <div className="px-4 mb-4">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="font-display font-bold text-lg">Événements à venir</h2>
-          <button onClick={() => navigate('/calendar')} className="text-xs text-primary font-semibold">Voir tout →</button>
-        </div>
-        <div className="space-y-3">
-          {isLoading ? (
-            <div className="text-center text-sm text-muted-foreground py-4">Chargement...</div>
-          ) : events.length > 0 ? (
-            events.map(event => <EventCard key={event.id} event={event} />)
-          ) : (
-            <div className="text-center text-sm text-muted-foreground py-4">Aucun événement à venir</div>
-          )}
-        </div>
-      </div>
-
       {/* Feed */}
       <div className="px-4">
         <div className="flex items-center justify-between mb-3">
@@ -106,7 +80,7 @@ const HomePage = () => {
             </button>
           )}
         </div>
-        <div className="space-y-4">
+        <div>
           {isLoading ? (
             <div className="text-center text-sm text-muted-foreground py-4">Chargement...</div>
           ) : posts.length > 0 ? (
