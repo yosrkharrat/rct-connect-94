@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import { User, UserRole } from '@/types';
 import { initStore } from '@/lib/store';
 import { authApi, setAuthToken, getAuthToken } from '@/lib/api';
+import { mapApiUser } from '@/lib/apiMappers';
 
 interface AuthContextType {
   user: User | null;
@@ -33,14 +34,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     if (token) {
       // Verify token and get user data
-      authApi.me().then(response => {
-        if (response.success && response.data?.user) {
-          setUser(response.data.user as User);
-        } else {
+      authApi.me()
+        .then(response => {
+          if (response.success && response.data?.user) {
+            const mappedUser = mapApiUser(response.data.user);
+            setUser(mappedUser);
+          } else {
+            setAuthToken(null);
+          }
+        })
+        .catch(error => {
+          console.error('Error verifying token:', error);
           setAuthToken(null);
-        }
-        setIsLoading(false);
-      });
+        })
+        .finally(() => {
+          setIsLoading(false);
+        });
     } else if (savedVisitor) {
       setIsVisitor(true);
       setIsLoading(false);
@@ -53,7 +62,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const response = await authApi.login(email, password);
     if (response.success && response.data) {
       setAuthToken(response.data.token);
-      setUser(response.data.user as User);
+      const mappedUser = mapApiUser(response.data.user);
+      setUser(mappedUser);
       setIsVisitor(false);
       localStorage.removeItem('rct_visitor');
       return { success: true };

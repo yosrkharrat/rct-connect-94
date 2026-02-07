@@ -10,7 +10,11 @@ const tabs = [
 ];
 
 const BottomNav = () => (
-  <nav className="bottom-nav fixed bottom-0 left-0 right-0 z-50 bg-card/90 backdrop-blur-xl border-t border-border safe-bottom">
+  <nav 
+    className="bottom-nav fixed bottom-0 left-0 right-0 z-50 bg-card/90 backdrop-blur-xl border-t border-border safe-bottom"
+    aria-label="Navigation principale"
+    role="navigation"
+  >
     <div className="flex items-center justify-around h-16 max-w-lg mx-auto">
       {tabs.map(({ to, icon: Icon, label }) => (
         <NavLink
@@ -18,14 +22,17 @@ const BottomNav = () => (
           to={to}
           end={to === "/"}
           className={({ isActive }) =>
-            `flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all duration-200 ${
+            `flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all duration-200 
+             min-w-[44px] min-h-[44px] justify-center ${
               isActive
                 ? "text-primary scale-105"
                 : "text-muted-foreground hover:text-foreground"
             }`
           }
+          aria-label={label}
+          aria-current={({ isActive }) => (isActive ? "page" : undefined)}
         >
-          <Icon className="w-5 h-5" strokeWidth={2} />
+          <Icon className="w-5 h-5" strokeWidth={2} aria-hidden="true" />
           <span className="text-[10px] font-medium font-body">{label}</span>
         </NavLink>
       ))}

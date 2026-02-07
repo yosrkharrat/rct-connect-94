@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, MapPin, Clock, Users, Calendar } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { createEvent } from '@/lib/store';
+import { eventsApi } from '@/lib/api';
 
 const CreateEventPage = () => {
   const { user } = useAuth();
@@ -14,17 +14,40 @@ const CreateEventPage = () => {
   const [group, setGroup] = useState('Tous');
   const [type, setType] = useState<'daily' | 'weekly' | 'race'>('daily');
   const [description, setDescription] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title || !date || !time || !location) return;
-    createEvent({
-      id: 'e_' + Date.now(),
-      title, date, time, location, group, type, description,
-      participants: user ? [user.id] : [],
-      createdBy: user?.id || '',
-    });
-    navigate('/calendar');
+    if (!title || !date || !time || !location) {
+      setError('Veuillez remplir tous les champs obligatoires');
+      return;
+    }
+    
+    setIsSubmitting(true);
+    setError('');
+    
+    try {
+      const response = await eventsApi.create({
+        title,
+        date,
+        time,
+        location,
+        description,
+        group_name: group,
+        event_type: type,
+      });
+      
+      if (response.success) {
+        navigate('/calendar');
+      } else {
+        setError(response.error || 'Erreur lors de la création de l\'événement');
+      }
+    } catch (error) {
+      setError('Erreur de connexion au serveur');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -91,8 +114,10 @@ const CreateEventPage = () => {
             rows={3} className="w-full px-4 py-3 rounded-xl bg-muted border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none" />
         </div>
 
-        <button type="submit" className="w-full h-12 rct-gradient-hero text-white font-display font-bold rounded-xl rct-glow-blue transition-transform active:scale-[0.98]">
-          Créer l'événement
+        {error && <p className="text-destructive text-sm font-medium">{error}</p>}
+
+        <button type="submit" disabled={isSubmitting} className="w-full h-12 rct-gradient-hero text-white font-display font-bold rounded-xl rct-glow-blue transition-transform active:scale-[0.98] disabled:opacity-70">
+          {isSubmitting ? 'Création...' : 'Créer l\'événement'}
         </button>
       </form>
     </div>

@@ -8,6 +8,7 @@ import { App as CapApp } from "@capacitor/app";
 import { useEffect } from "react";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import SkipLink from "@/components/SkipLink";
 import BottomNav from "@/components/BottomNav";
 import HomePage from "@/pages/HomePage";
 import CalendarPage from "@/pages/CalendarPage";
@@ -48,8 +49,11 @@ const AppContent = () => {
   }, []);
 
   return (
-    <div className="w-full min-h-screen bg-background relative safe-top">
-      <Routes>
+    <>
+      <SkipLink />
+      <div className="w-full min-h-screen bg-background relative safe-top">
+        <main id="main-content" tabIndex={-1}>
+          <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/calendar" element={<CalendarPage />} />
         <Route path="/map" element={<MapPage />} />
@@ -64,10 +68,12 @@ const AppContent = () => {
         <Route path="/messaging" element={<MessagingPage />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/strava" element={<StravaPage />} />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-      {showNav && <BottomNav />}
-    </div>
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+        </main>
+        {showNav && <BottomNav />}
+      </div>
+    </>
   );
 };
 

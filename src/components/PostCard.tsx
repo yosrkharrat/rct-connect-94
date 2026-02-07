@@ -12,11 +12,11 @@ const PostCard = ({ post }: PostCardProps) => {
   const { user } = useAuth();
   const users = getUsers();
   const author = users.find(u => u.id === post.authorId);
-  const [liked, setLiked] = useState(user ? post.likes.includes(user.id) : false);
-  const [likeCount, setLikeCount] = useState(post.likes.length);
+  const [liked, setLiked] = useState(user ? post.likes?.includes(user.id) : false);
+  const [likeCount, setLikeCount] = useState(post.likes?.length || 0);
   const [showComments, setShowComments] = useState(false);
   const [commentText, setCommentText] = useState('');
-  const [comments, setComments] = useState(post.comments);
+  const [comments, setComments] = useState(post.comments || []);
 
   const handleLike = () => {
     if (!user) return;

@@ -1,16 +1,38 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import StoriesBar from '@/components/StoriesBar';
 import PostCard from '@/components/PostCard';
-import { getPosts } from '@/lib/store';
+import { postsApi } from '@/lib/api';
+import { mapApiPost } from '@/lib/apiMappers';
 import { useAuth } from '@/contexts/AuthContext';
+import { Post } from '@/types';
 
 const CommunityPage = () => {
   const navigate = useNavigate();
   const { isLoggedIn } = useAuth();
   const [activeTab, setActiveTab] = useState<'all' | 'following' | 'reels'>('all');
-  const allPosts = getPosts();
+  const [allPosts, setAllPosts] = useState<Post[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchPosts = async () => {
+      setIsLoading(true);
+      try {
+        const response = await postsApi.getAll();
+        if (response.success && response.data) {
+          const mappedPosts = (response.data as any[]).map(mapApiPost);
+          setAllPosts(mappedPosts);
+        }
+      } catch (error) {
+        console.error('Error fetching posts:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchPosts();
+  }, []);
 
   const posts = activeTab === 'reels'
     ? allPosts.filter(p => p.type === 'reel')
@@ -52,14 +74,19 @@ const CommunityPage = () => {
       </div>
 
       <div className="px-4 space-y-4">
-        {posts.length === 0 && (
+        {isLoading ? (
+          <div className="bg-card rounded-2xl rct-shadow-card p-8 text-center">
+            <p className="text-muted-foreground text-sm">Chargement...</p>
+          </div>
+        ) : posts.length === 0 ? (
           <div className="bg-card rounded-2xl rct-shadow-card p-8 text-center">
             <p className="text-muted-foreground text-sm">
               {activeTab === 'reels' ? 'Aucun reel pour le moment. Soyez le premier!' : 'Aucune publication'}
             </p>
           </div>
+        ) : (
+          posts.map(post => <PostCard key={post.id} post={post} />)
         )}
-        {posts.map(post => <PostCard key={post.id} post={post} />)}
       </div>
     </div>
   );

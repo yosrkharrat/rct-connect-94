@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Send } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { getConversations, getMessages, sendMessage, getUsers } from '@/lib/store';
+import { messagesApi } from '@/lib/api';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 const MessagingPage = () => {
@@ -10,11 +10,46 @@ const MessagingPage = () => {
   const navigate = useNavigate();
   const [selectedConv, setSelectedConv] = useState<string | null>(null);
   const [newMsg, setNewMsg] = useState('');
-  const [, setTick] = useState(0);
+  const [conversations, setConversations] = useState<any[]>([]);
+  const [messages, setMessages] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchConversations = async () => {
+      if (!user) return;
+      setIsLoading(true);
+      try {
+        const response = await messagesApi.getConversations();
+        if (response.success && response.data) {
+          setConversations(response.data as any[]);
+        }
+      } catch (error) {
+        console.error('Error fetching conversations:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchConversations();
+  }, [user]);
+
+  useEffect(() => {
+    const fetchMessages = async () => {
+      if (!selectedConv) return;
+      try {
+        const response = await messagesApi.getConversation(selectedConv);
+        if (response.success && response.data) {
+          setMessages((response.data as any).messages || []);
+        }
+      } catch (error) {
+        console.error('Error fetching messages:', error);
+      }
+    };
+
+    fetchMessages();
+  }, [selectedConv]);
 
   if (!user) return null;
-
-  const conversations = getConversations(user.id);
 
   const formatTime = (iso: string) => {
     const diff = Date.now() - new Date(iso).getTime();
@@ -27,23 +62,22 @@ const MessagingPage = () => {
   if (selectedConv) {
     const conv = conversations.find(c => c.id === selectedConv);
     if (!conv) return null;
-    const otherId = conv.participantIds.find(id => id !== user.id) || '';
+    const otherId = conv.participantIds.find((id: string) => id !== user.id) || '';
     const otherIdx = conv.participantIds.indexOf(otherId);
     const otherName = conv.participantNames[otherIdx];
-    const messages = getMessages(user.id, otherId);
 
-    const handleSend = () => {
+    const handleSend = async () => {
       if (!newMsg.trim()) return;
-      sendMessage({
-        id: 'm_' + Date.now(),
-        senderId: user.id,
-        receiverId: otherId,
-        content: newMsg,
-        createdAt: new Date().toISOString(),
-        read: false,
-      });
-      setNewMsg('');
-      setTick(t => t + 1);
+      try {
+        await messagesApi.sendMessage(selectedConv, newMsg);
+        setNewMsg('');
+        const response = await messagesApi.getConversation(selectedConv);
+        if (response.success && response.data) {
+          setMessages((response.data as any).messages || []);
+        }
+      } catch (error) {
+        console.error('Error sending message:', error);
+      }
     };
 
     return (
@@ -103,9 +137,6 @@ const MessagingPage = () => {
   }
 
   // Conversations list
-  const allUsers = getUsers().filter(u => u.id !== user.id);
-  const convUserIds = new Set(conversations.flatMap(c => c.participantIds));
-
   return (
     <div className="pb-20 pt-6">
       <div className="flex items-center gap-3 px-4 mb-6">
@@ -145,29 +176,17 @@ const MessagingPage = () => {
           );
         })}
 
-        {/* New conversations */}
-        <h3 className="font-display font-bold text-sm mt-6 mb-2 text-muted-foreground">Autres membres</h3>
-        {allUsers.filter(u => !convUserIds.has(u.id)).map(u => (
-          <button key={u.id} onClick={() => {
-            sendMessage({
-              id: 'm_' + Date.now(), senderId: user.id, receiverId: u.id,
-              content: 'Salut! 👋', createdAt: new Date().toISOString(), read: false,
-            });
-            setTick(t => t + 1);
-          }}
-            className="w-full bg-card rounded-2xl rct-shadow-card p-4 flex items-center gap-3 text-left">
-            <Avatar className="w-10 h-10">
-              <AvatarFallback className="bg-muted text-muted-foreground font-display text-sm font-bold">
-                {u.name.slice(0, 2).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-1">
-              <p className="font-display font-semibold text-sm">{u.name}</p>
-              <p className="text-[11px] text-muted-foreground">{u.group}</p>
-            </div>
-            <span className="text-xs text-primary font-semibold">Écrire →</span>
-          </button>
-        ))}
+        {conversations.length === 0 && !isLoading && (
+          <div className="bg-card rounded-2xl rct-shadow-card p-8 text-center">
+            <p className="text-muted-foreground text-sm">Aucune conversation</p>
+          </div>
+        )}
+        
+        {isLoading && (
+          <div className="bg-card rounded-2xl rct-shadow-card p-8 text-center">
+            <p className="text-muted-foreground text-sm">Chargement...</p>
+          </div>
+        )}
       </div>
     </div>
   );

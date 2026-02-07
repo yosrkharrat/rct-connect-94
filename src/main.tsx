@@ -5,6 +5,7 @@ import { Keyboard } from "@capacitor/keyboard";
 import { Capacitor } from "@capacitor/core";
 import App from "./App.tsx";
 import "./index.css";
+import "./accessibility.css";
 
 // Initialize native plugins when running on a device
 const initApp = async () => {

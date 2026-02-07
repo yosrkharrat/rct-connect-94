@@ -1,8 +1,10 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Calendar, Clock, MapPin, Users, Share2, UserPlus, UserMinus } from 'lucide-react';
-import { getEvent, joinEvent, leaveEvent, getUser } from '@/lib/store';
+import { eventsApi } from '@/lib/api';
+import { mapApiEvent } from '@/lib/apiMappers';
 import { useAuth } from '@/contexts/AuthContext';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { RCTEvent } from '@/types';
 
 const typeStyles: Record<string, string> = {
   daily: 'bg-primary/10 text-primary',
@@ -15,8 +17,42 @@ const EventDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [, setTick] = useState(0);
-  const event = getEvent(id || '');
+  const [event, setEvent] = useState<RCTEvent | null>(null);
+  const [participants, setParticipants] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isJoined, setIsJoined] = useState(false);
+
+  useEffect(() => {
+    const fetchEvent = async () => {
+      if (!id) return;
+      setIsLoading(true);
+      try {
+        const response = await eventsApi.getById(id);
+        if (response.success && response.data) {
+          const mappedEvent = mapApiEvent(response.data);
+          setEvent(mappedEvent);
+          setIsJoined(user ? (response.data as any).is_joined : false);
+          
+          const partsResponse = await eventsApi.getParticipants(id);
+          if (partsResponse.success && partsResponse.data) {
+            setParticipants(partsResponse.data as any[]);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching event:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchEvent();
+  }, [id, user]);
+
+  if (isLoading) return (
+    <div className="min-h-screen flex items-center justify-center">
+      <p className="text-muted-foreground">Chargement...</p>
+    </div>
+  );
 
   if (!event) return (
     <div className="min-h-screen flex items-center justify-center">
@@ -24,17 +60,23 @@ const EventDetailPage = () => {
     </div>
   );
 
-  const isJoined = user ? event.participants.includes(user.id) : false;
-
-  const handleJoin = () => {
-    if (!user) return;
-    if (isJoined) leaveEvent(event.id, user.id);
-    else joinEvent(event.id, user.id);
-    setTick(t => t + 1);
+  const handleJoin = async () => {
+    if (!user || !id) return;
+    try {
+      if (isJoined) {
+        await eventsApi.leave(id);
+      } else {
+        await eventsApi.join(id);
+      }
+      setIsJoined(!isJoined);
+      const partsResponse = await eventsApi.getParticipants(id);
+      if (partsResponse.success && partsResponse.data) {
+        setParticipants(partsResponse.data as any[]);
+      }
+    } catch (error) {
+      console.error('Error joining/leaving event:', error);
+    }
   };
-
-  const currentEvent = getEvent(id || '')!;
-  const participants = currentEvent.participants.map(pid => getUser(pid)).filter(Boolean);
 
   return (
     <div className="pb-20 pt-6">
@@ -49,18 +91,18 @@ const EventDetailPage = () => {
       </div>
 
       <div className="mx-4 bg-card rounded-2xl rct-shadow-elevated p-6 mb-4">
-        <span className={`text-xs font-semibold px-3 py-1 rounded-full ${typeStyles[currentEvent.type]}`}>
-          {typeLabels[currentEvent.type]}
+        <span className={`text-xs font-semibold px-3 py-1 rounded-full ${typeStyles[event.type]}`}>
+          {typeLabels[event.type]}
         </span>
-        <h2 className="font-display font-extrabold text-2xl mt-3">{currentEvent.title}</h2>
-        <p className="text-sm text-muted-foreground mt-2">{currentEvent.description}</p>
+        <h2 className="font-display font-extrabold text-2xl mt-3">{event.title}</h2>
+        <p className="text-sm text-muted-foreground mt-2">{event.description}</p>
 
         <div className="grid grid-cols-2 gap-3 mt-5">
           {[
-            { icon: Calendar, label: currentEvent.date, sub: 'Date' },
-            { icon: Clock, label: currentEvent.time, sub: 'Heure' },
-            { icon: MapPin, label: currentEvent.location, sub: 'Lieu' },
-            { icon: Users, label: currentEvent.group, sub: 'Groupe' },
+            { icon: Calendar, label: event.date, sub: 'Date' },
+            { icon: Clock, label: event.time, sub: 'Heure' },
+            { icon: MapPin, label: event.location, sub: 'Lieu' },
+            { icon: Users, label: event.group, sub: 'Groupe' },
           ].map(item => (
             <div key={item.sub} className="bg-muted rounded-xl p-3">
               <div className="flex items-center gap-2 mb-1">

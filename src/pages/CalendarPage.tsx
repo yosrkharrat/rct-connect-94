@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import EventCard from '@/components/EventCard';
-import { getEvents } from '@/lib/store';
+import { eventsApi } from '@/lib/api';
+import { mapApiEvent } from '@/lib/apiMappers';
 import { useAuth } from '@/contexts/AuthContext';
+import { RCTEvent } from '@/types';
 
 const DAYS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
 const MONTHS = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
@@ -15,11 +17,31 @@ const CalendarPage = () => {
   const [currentYear, setCurrentYear] = useState(2026);
   const [selectedDay, setSelectedDay] = useState(new Date().getDate());
   const [filterGroup, setFilterGroup] = useState('Tous');
+  const [allEvents, setAllEvents] = useState<RCTEvent[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchEvents = async () => {
+      setIsLoading(true);
+      try {
+        const response = await eventsApi.getAll();
+        if (response.success && response.data) {
+          const mappedEvents = (response.data as any[]).map(mapApiEvent);
+          setAllEvents(mappedEvents);
+        }
+      } catch (error) {
+        console.error('Error fetching events:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchEvents();
+  }, []);
 
   const firstDay = (new Date(currentYear, currentMonth, 1).getDay() + 6) % 7;
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
 
-  const allEvents = getEvents();
   const monthEvents = allEvents.filter(e => {
     const d = new Date(e.date);
     return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
@@ -115,8 +137,13 @@ const CalendarPage = () => {
       <div className="px-4">
         <h3 className="font-display font-bold mb-3">{selectedDay} {MONTHS[currentMonth]}</h3>
         <div className="space-y-3">
-          {dayEvents.map(event => <EventCard key={event.id} event={event} />)}
-          {dayEvents.length === 0 && (
+          {isLoading ? (
+            <div className="bg-card rounded-2xl rct-shadow-card p-8 text-center">
+              <p className="text-muted-foreground text-sm">Chargement...</p>
+            </div>
+          ) : dayEvents.length > 0 ? (
+            dayEvents.map(event => <EventCard key={event.id} event={event} />)
+          ) : (
             <div className="bg-card rounded-2xl rct-shadow-card p-8 text-center">
               <p className="text-muted-foreground text-sm">Aucun événement ce jour</p>
             </div>

@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { Bell, Plus, BookOpen } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import heroBanner from '@/assets/hero-banner.jpg';
@@ -5,14 +6,52 @@ import StoriesBar from '@/components/StoriesBar';
 import PostCard from '@/components/PostCard';
 import EventCard from '@/components/EventCard';
 import { useAuth } from '@/contexts/AuthContext';
-import { getEvents, getPosts, getUnreadCount } from '@/lib/store';
+import { eventsApi, postsApi, notificationsApi } from '@/lib/api';
+import { mapApiEvent, mapApiPost } from '@/lib/apiMappers';
+import { RCTEvent, Post } from '@/types';
 
 const HomePage = () => {
   const { user, isLoggedIn } = useAuth();
   const navigate = useNavigate();
-  const events = getEvents().slice(0, 3);
-  const posts = getPosts().filter(p => p.type === 'post').slice(0, 5);
-  const unread = user ? getUnreadCount(user.id) : 0;
+  const [events, setEvents] = useState<RCTEvent[]>([]);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [unread, setUnread] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        // Fetch events
+        const eventsResponse = await eventsApi.getAll();
+        if (eventsResponse.success && eventsResponse.data) {
+          const mappedEvents = (eventsResponse.data as any[]).map(mapApiEvent);
+          setEvents(mappedEvents.slice(0, 3));
+        }
+
+        // Fetch posts
+        const postsResponse = await postsApi.getAll({ limit: 5 });
+        if (postsResponse.success && postsResponse.data) {
+          const mappedPosts = (postsResponse.data as any[]).map(mapApiPost);
+          setPosts(mappedPosts);
+        }
+
+        // Fetch unread notifications count
+        if (user) {
+          const notifResponse = await notificationsApi.getAll({ unreadOnly: true });
+          if (notifResponse.success && notifResponse.data) {
+            setUnread((notifResponse.data as any[]).length);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching home data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [user]);
 
   return (
     <div className="pb-20">
@@ -51,8 +90,8 @@ const HomePage = () => {
       <div className="grid grid-cols-3 gap-3 px-4 mb-4">
         {[
           { value: '125', label: 'Membres' },
-          { value: user ? `${user.stats.totalDistance}` : '2.4K', label: user ? 'Mes km' : 'Km/semaine' },
-          { value: `${getEvents().length}`, label: 'Événements' },
+          { value: user ? `${user.stats.totalDistance || 0}` : '2.4K', label: user ? 'Mes km' : 'Km/semaine' },
+          { value: `${events.length || 0}`, label: 'Événements' },
         ].map(stat => (
           <div key={stat.label} className="bg-card rounded-2xl rct-shadow-card p-3 text-center">
             <p className="font-display font-extrabold text-xl rct-text-gradient">{stat.value}</p>
@@ -68,7 +107,13 @@ const HomePage = () => {
           <button onClick={() => navigate('/calendar')} className="text-xs text-primary font-semibold">Voir tout →</button>
         </div>
         <div className="space-y-3">
-          {events.map(event => <EventCard key={event.id} event={event} />)}
+          {isLoading ? (
+            <div className="text-center text-sm text-muted-foreground py-4">Chargement...</div>
+          ) : events.length > 0 ? (
+            events.map(event => <EventCard key={event.id} event={event} />)
+          ) : (
+            <div className="text-center text-sm text-muted-foreground py-4">Aucun événement à venir</div>
+          )}
         </div>
       </div>
 
@@ -83,7 +128,13 @@ const HomePage = () => {
           )}
         </div>
         <div className="space-y-4">
-          {posts.map(post => <PostCard key={post.id} post={post} />)}
+          {isLoading ? (
+            <div className="text-center text-sm text-muted-foreground py-4">Chargement...</div>
+          ) : posts.length > 0 ? (
+            posts.map(post => <PostCard key={post.id} post={post} />)
+          ) : (
+            <div className="text-center text-sm text-muted-foreground py-4">Aucune publication</div>
+          )}
         </div>
       </div>
     </div>

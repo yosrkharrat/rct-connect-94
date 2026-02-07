@@ -1,16 +1,46 @@
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { getEvents, getPosts } from '@/lib/store';
+import { eventsApi, postsApi } from '@/lib/api';
+import { mapApiEvent, mapApiPost } from '@/lib/apiMappers';
 import {
   Settings, MessageSquare, Activity, Trophy, ChevronRight,
   Shield, Star, Calendar, MapPin, LogIn
 } from 'lucide-react';
+import { RCTEvent, Post } from '@/types';
 
 const ProfilePage = () => {
   const navigate = useNavigate();
   const { user, isLoggedIn, logout } = useAuth();
-  const events = getEvents();
-  const posts = getPosts();
+  const [events, setEvents] = useState<RCTEvent[]>([]);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!user) return;
+      setIsLoading(true);
+      try {
+        const eventsResponse = await eventsApi.getAll();
+        if (eventsResponse.success && eventsResponse.data) {
+          const mappedEvents = (eventsResponse.data as any[]).map(mapApiEvent);
+          setEvents(mappedEvents);
+        }
+        
+        const postsResponse = await postsApi.getAll({ authorId: user.id });
+        if (postsResponse.success && postsResponse.data) {
+          const mappedPosts = (postsResponse.data as any[]).map(mapApiPost);
+          setPosts(mappedPosts);
+        }
+      } catch (error) {
+        console.error('Error fetching profile data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [user]);
 
   if (!isLoggedIn || !user) {
     return (

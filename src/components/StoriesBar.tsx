@@ -89,8 +89,8 @@ const StoriesBar = () => {
 
       {viewerOpen && (
         <StoryViewer
-          stories={groupEntries[selectedStoryIdx]?.[1] || []}
-          initialIndex={0}
+          storyGroups={groupEntries}
+          initialGroupIndex={selectedStoryIdx}
           onClose={() => setViewerOpen(false)}
         />
       )}
