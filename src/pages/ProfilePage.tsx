@@ -4,17 +4,22 @@ import { useAuth } from '@/contexts/AuthContext';
 import { eventsApi, postsApi } from '@/lib/api';
 import { mapApiEvent, mapApiPost } from '@/lib/apiMappers';
 import {
-  Settings, MessageSquare, Activity, Trophy, ChevronRight,
-  Shield, Star, Calendar, MapPin, LogIn
+  Settings, Activity, Trophy, ChevronRight,
+  Shield, Star, LogIn, LogOut, Edit, X, Camera
 } from 'lucide-react';
 import { RCTEvent, Post } from '@/types';
 
 const ProfilePage = () => {
   const navigate = useNavigate();
-  const { user, isLoggedIn, logout } = useAuth();
+  const { user, isLoggedIn, logout, updateUser } = useAuth();
   const [events, setEvents] = useState<RCTEvent[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editBio, setEditBio] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -41,6 +46,32 @@ const ProfilePage = () => {
 
     fetchData();
   }, [user]);
+
+  const openEditModal = () => {
+    if (user) {
+      setEditName(user.name);
+      setEditBio((user as any).bio || '');
+    }
+    setShowEditModal(true);
+  };
+
+  const handleSaveProfile = async () => {
+    if (!editName.trim()) return;
+    setIsSaving(true);
+    try {
+      updateUser({ name: editName.trim(), bio: editBio.trim() });
+      setShowEditModal(false);
+    } catch (error) {
+      console.error('Error saving profile:', error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
 
   if (!isLoggedIn || !user) {
     return (
@@ -74,10 +105,7 @@ const ProfilePage = () => {
   const BadgeIcon = badge.icon;
 
   const menuItems = [
-    { label: 'Messages', icon: MessageSquare, path: '/messaging', count: 0 },
     { label: 'Strava', icon: Activity, path: '/strava' },
-    { label: 'Événements', icon: Calendar, path: '/calendar' },
-    { label: 'Parcours', icon: MapPin, path: '/map' },
     { label: 'Réglages', icon: Settings, path: '/settings' },
   ];
 
@@ -87,7 +115,7 @@ const ProfilePage = () => {
       <div className="px-4 mb-6">
         <div className="bg-card rounded-2xl rct-shadow-card p-6">
           <div className="flex items-center gap-4 mb-4">
-            <div className="w-16 h-16 rounded-full rct-gradient-hero flex items-center justify-center rct-glow-blue">
+            <div className="w-16 h-16 rounded-full rct-gradient-hero flex items-center justify-center rct-glow-blue relative">
               <span className="text-2xl font-bold text-white">
                 {user.name.split(' ').map(n => n[0]).join('')}
               </span>
@@ -99,8 +127,17 @@ const ProfilePage = () => {
                 {badge.label}
               </div>
             </div>
+            <button 
+              onClick={openEditModal}
+              className="w-10 h-10 rounded-full bg-muted flex items-center justify-center"
+            >
+              <Edit className="w-5 h-5" />
+            </button>
           </div>
-          {/* Bio placeholder */}
+          {/* Bio */}
+          {(user as any).bio && (
+            <p className="text-sm text-muted-foreground mb-2">{(user as any).bio}</p>
+          )}
           {user.group && (
             <p className="text-xs text-muted-foreground">Groupe: <span className="font-semibold text-foreground">{user.group}</span></p>
           )}
@@ -138,6 +175,101 @@ const ProfilePage = () => {
           </button>
         ))}
       </div>
+
+      {/* Logout Button */}
+      <div className="px-4 mt-6">
+        <button 
+          onClick={handleLogout}
+          className="w-full bg-card rounded-2xl rct-shadow-card p-4 flex items-center gap-4 active:scale-[.98] transition-transform border border-destructive/20"
+        >
+          <div className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center">
+            <LogOut className="w-5 h-5 text-destructive" />
+          </div>
+          <span className="flex-1 text-left font-semibold text-destructive">Se déconnecter</span>
+        </button>
+      </div>
+
+      {/* Edit Profile Modal */}
+      {showEditModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center">
+          <div className="bg-card w-full sm:w-96 sm:rounded-2xl rounded-t-2xl p-6 max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom duration-300">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="font-display font-bold text-lg">Modifier le profil</h3>
+              <button 
+                onClick={() => setShowEditModal(false)}
+                className="w-8 h-8 rounded-full bg-muted flex items-center justify-center"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Avatar Preview */}
+            <div className="flex justify-center mb-6">
+              <div className="relative">
+                <div className="w-24 h-24 rounded-full rct-gradient-hero flex items-center justify-center">
+                  <span className="text-3xl font-bold text-white">
+                    {editName.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                  </span>
+                </div>
+                <button className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-primary flex items-center justify-center">
+                  <Camera className="w-4 h-4 text-white" />
+                </button>
+              </div>
+            </div>
+
+            {/* Form Fields */}
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium mb-1 block">Nom complet</label>
+                <input
+                  type="text"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl bg-muted border-0 focus:ring-2 focus:ring-primary outline-none"
+                  placeholder="Votre nom"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1 block">Bio</label>
+                <textarea
+                  value={editBio}
+                  onChange={(e) => setEditBio(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl bg-muted border-0 focus:ring-2 focus:ring-primary outline-none resize-none"
+                  placeholder="Parlez-nous de vous..."
+                  rows={3}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1 block">Groupe</label>
+                <input
+                  type="text"
+                  value={user.group || ''}
+                  disabled
+                  className="w-full px-4 py-3 rounded-xl bg-muted border-0 text-muted-foreground cursor-not-allowed"
+                />
+                <p className="text-xs text-muted-foreground mt-1">Contactez un admin pour changer de groupe</p>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="flex-1 py-3 rounded-xl bg-muted font-semibold"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleSaveProfile}
+                disabled={isSaving || !editName.trim()}
+                className="flex-1 py-3 rounded-xl rct-gradient-hero text-white font-semibold disabled:opacity-50"
+              >
+                {isSaving ? 'Enregistrement...' : 'Enregistrer'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
