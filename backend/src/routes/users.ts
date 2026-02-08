@@ -56,6 +56,7 @@ router.put('/:id', authenticateToken, async (req: AuthRequest, res) => {
     const schema = z.object({
       name: z.string().min(2).optional(),
       avatar: z.string().url().nullable().optional(),
+      level: z.enum(['débutant', 'intermédiaire', 'élite']).optional(),
       group_name: z.string().optional(),
     });
 

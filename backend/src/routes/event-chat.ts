@@ -1,11 +1,11 @@
-import { Router, Request, Response } from 'express';
-import dbHelper, { DbChatGroup, DbChatGroupMember, DbChatMessage } from '../db';
-import { authenticate } from '../middleware/auth';
+import { Router, Response } from 'express';
+import dbHelper, { DbChatMessage } from '../db';
+import { authenticateToken, AuthRequest } from '../middleware/auth';
 
 const router = Router();
 
 // Get chat group for an event
-router.get('/:eventId/group', authenticate, (req: Request, res: Response) => {
+router.get('/:eventId/group', authenticateToken, (req: AuthRequest, res: Response) => {
   try {
     const { eventId } = req.params;
     
@@ -23,7 +23,7 @@ router.get('/:eventId/group', authenticate, (req: Request, res: Response) => {
 
     // Check if user is a member of this group
     const members = dbHelper.getChatGroupMembers(chatGroup.id);
-    const isMember = members.some(m => m.user_id === req.user!.id);
+    const isMember = members.some(m => m.user_id === req.user!.userId);
 
     if (!isMember) {
       return res.status(403).json({ success: false, error: 'You are not a member of this chat group' });
@@ -37,7 +37,7 @@ router.get('/:eventId/group', authenticate, (req: Request, res: Response) => {
 });
 
 // Get messages for event chat group
-router.get('/:eventId/messages', authenticate, (req: Request, res: Response) => {
+router.get('/:eventId/messages', authenticateToken, (req: AuthRequest, res: Response) => {
   try {
     const { eventId } = req.params;
     
@@ -49,7 +49,7 @@ router.get('/:eventId/messages', authenticate, (req: Request, res: Response) => 
 
     // Check if user is a member
     const members = dbHelper.getChatGroupMembers(chatGroup.id);
-    const isMember = members.some(m => m.user_id === req.user!.id);
+    const isMember = members.some(m => m.user_id === req.user!.userId);
 
     if (!isMember) {
       return res.status(403).json({ success: false, error: 'You are not a member of this chat group' });
@@ -80,7 +80,7 @@ router.get('/:eventId/messages', authenticate, (req: Request, res: Response) => 
 });
 
 // Send message to event chat group
-router.post('/:eventId/messages', authenticate, (req: Request, res: Response) => {
+router.post('/:eventId/messages', authenticateToken, (req: AuthRequest, res: Response) => {
   try {
     const { eventId } = req.params;
     const { content } = req.body;
@@ -97,7 +97,7 @@ router.post('/:eventId/messages', authenticate, (req: Request, res: Response) =>
 
     // Check if user is a member
     const members = dbHelper.getChatGroupMembers(chatGroup.id);
-    const isMember = members.some(m => m.user_id === req.user!.id);
+    const isMember = members.some(m => m.user_id === req.user!.userId);
 
     if (!isMember) {
       return res.status(403).json({ success: false, error: 'You are not a member of this chat group' });
@@ -107,7 +107,7 @@ router.post('/:eventId/messages', authenticate, (req: Request, res: Response) =>
     const message: DbChatMessage = {
       id: Date.now().toString(),
       group_id: chatGroup.id,
-      sender_id: req.user!.id,
+      sender_id: req.user!.userId,
       content: content.trim(),
       created_at: new Date().toISOString(),
     };
@@ -115,7 +115,7 @@ router.post('/:eventId/messages', authenticate, (req: Request, res: Response) =>
     dbHelper.createChatMessage(message);
 
     // Get sender info
-    const sender = dbHelper.getUserById(req.user!.id);
+    const sender = dbHelper.getUserById(req.user!.userId);
 
     const messageWithSender = {
       id: message.id,
@@ -135,7 +135,7 @@ router.post('/:eventId/messages', authenticate, (req: Request, res: Response) =>
 });
 
 // Get chat group members
-router.get('/:eventId/members', authenticate, (req: Request, res: Response) => {
+router.get('/:eventId/members', authenticateToken, (req: AuthRequest, res: Response) => {
   try {
     const { eventId } = req.params;
     
@@ -147,7 +147,7 @@ router.get('/:eventId/members', authenticate, (req: Request, res: Response) => {
 
     // Check if user is a member
     const members = dbHelper.getChatGroupMembers(chatGroup.id);
-    const isMember = members.some(m => m.user_id === req.user!.id);
+    const isMember = members.some(m => m.user_id === req.user!.userId);
 
     if (!isMember) {
       return res.status(403).json({ success: false, error: 'You are not a member of this chat group' });

@@ -10,6 +10,7 @@ export interface DbUser {
   name: string;
   avatar: string | null;
   role: 'admin' | 'coach' | 'group_admin' | 'member';
+  level: 'débutant' | 'intermédiaire' | 'élite';
   group_name: string | null;
   distance: number;
   runs: number;
@@ -195,6 +196,7 @@ function initializeTables() {
       name TEXT NOT NULL,
       avatar TEXT,
       role TEXT DEFAULT 'member' CHECK(role IN ('admin', 'coach', 'group_admin', 'member')),
+      level TEXT DEFAULT 'débutant' CHECK(level IN ('débutant', 'intermédiaire', 'élite')),
       group_name TEXT,
       distance REAL DEFAULT 0,
       runs INTEGER DEFAULT 0,
@@ -428,6 +430,11 @@ function runMigrations() {
     const tableInfo = db.prepare("PRAGMA table_info(users)").all() as any[];
     const columnNames = tableInfo.map((col: any) => col.name);
 
+    if (!columnNames.includes('level')) {
+      db.exec("ALTER TABLE users ADD COLUMN level TEXT DEFAULT 'débutant' CHECK(level IN ('débutant', 'intermédiaire', 'élite'))");
+      console.log('[Migration] Added level column to users');
+    }
+
     if (!columnNames.includes('strava_access_token')) {
       db.exec('ALTER TABLE users ADD COLUMN strava_access_token TEXT');
       console.log('[Migration] Added strava_access_token column to users');
@@ -477,8 +484,8 @@ class DatabaseHelper {
 
   createUser(user: DbUser): void {
     const stmt = db.prepare(`
-      INSERT INTO users (id, email, password, name, avatar, role, group_name, distance, runs, joined_events, strava_connected, strava_id, strava_access_token, strava_refresh_token, strava_token_expires_at, created_at, updated_at)
-      VALUES (@id, @email, @password, @name, @avatar, @role, @group_name, @distance, @runs, @joined_events, @strava_connected, @strava_id, @strava_access_token, @strava_refresh_token, @strava_token_expires_at, @created_at, @updated_at)
+      INSERT INTO users (id, email, password, name, avatar, role, level, group_name, distance, runs, joined_events, strava_connected, strava_id, strava_access_token, strava_refresh_token, strava_token_expires_at, created_at, updated_at)
+      VALUES (@id, @email, @password, @name, @avatar, @role, @level, @group_name, @distance, @runs, @joined_events, @strava_connected, @strava_id, @strava_access_token, @strava_refresh_token, @strava_token_expires_at, @created_at, @updated_at)
     `);
     stmt.run({ ...user, strava_connected: user.strava_connected ? 1 : 0 });
   }

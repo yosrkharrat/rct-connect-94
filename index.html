@@ -2,7 +2,7 @@
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="viewport-fit=cover, width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="viewport" content="viewport-fit=cover, width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
     <meta name="format-detection" content="telephone=no" />
     <meta name="msapplication-tap-highlight" content="no" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -12,12 +12,39 @@
     <title>RCT Connect</title>
     <meta name="description" content="Running Club Tunis - Communauté de coureurs passionnés à Tunis depuis 2016" />
     <meta name="author" content="Running Club Tunis" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Preconnect for faster font loading -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    
+    <!-- Font loading with display=swap for non-blocking -->
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&family=Space+Grotesk:wght@500;600&display=swap" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&family=Space+Grotesk:wght@500;600&display=swap" media="print" onload="this.media='all'" />
+    <noscript>
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&family=Space+Grotesk:wght@500;600&display=swap" />
+    </noscript>
+    
+    <!-- Critical CSS for initial paint -->
+    <style>
+      /* Minimal critical styles for fast FCP */
+      *,*::before,*::after{box-sizing:border-box}
+      body{margin:0;font-family:Outfit,system-ui,sans-serif;background:#f8fafc}
+      #root{min-height:100vh}
+      .splash-loader{display:flex;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,#FF5722,#FF6B35)}
+      @media(prefers-color-scheme:dark){body{background:#0f172a}}
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Inline splash for instant feedback -->
+      <div class="splash-loader" id="initial-splash">
+        <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+          <circle cx="12" cy="12" r="10" stroke-dasharray="32" stroke-dashoffset="32">
+            <animate attributeName="stroke-dashoffset" values="32;0" dur="1s" fill="freeze"/>
+          </circle>
+        </svg>
+      </div>
+    </div>
     <script>
       // Handle OAuth redirect from Strava
       const urlParams = new URLSearchParams(window.location.search);
@@ -28,6 +55,12 @@
         // Strava OAuth callback detected - redirect to hash-based route
         window.location.replace('/#/strava/callback?code=' + code + '&state=' + state);
       }
+      
+      // Remove initial splash once app loads
+      window.addEventListener('DOMContentLoaded', function() {
+        var splash = document.getElementById('initial-splash');
+        if (splash) setTimeout(function() { splash.style.display = 'none'; }, 100);
+      });
     </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>

@@ -1,27 +1,38 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { eventsApi, postsApi } from '@/lib/api';
+import { eventsApi, postsApi, stravaApi } from '@/lib/api';
 import { mapApiEvent, mapApiPost } from '@/lib/apiMappers';
 import {
-  Settings, Activity, Trophy, LogIn, LogOut, Edit, X, Camera,
-  Shield, Star, Grid3x3, LayoutList, PlayCircle, Image as ImageIcon
+  Settings, Activity, Trophy, LogIn, X,
+  Shield, Star, Grid3x3, Award, PlayCircle, Image as ImageIcon,
+  Medal, Target, Zap, Flame, Crown, RefreshCw
 } from 'lucide-react';
 import { RCTEvent, Post } from '@/types';
+import PostCard from '@/components/PostCard';
+
+// Badge definitions
+const BADGES = [
+  { id: 'first_run', name: 'Première course', icon: Zap, color: 'bg-green-500', desc: 'Première sortie enregistrée', unlocked: true },
+  { id: 'km_10', name: '10 km total', icon: Medal, color: 'bg-blue-500', desc: 'Courir 10 km au total', unlocked: true },
+  { id: 'km_50', name: '50 km total', icon: Medal, color: 'bg-purple-500', desc: 'Courir 50 km au total', unlocked: true },
+  { id: 'km_100', name: '100 km total', icon: Trophy, color: 'bg-yellow-500', desc: 'Courir 100 km au total', unlocked: false },
+  { id: 'streak_7', name: 'Semaine parfaite', icon: Flame, color: 'bg-orange-500', desc: '7 jours consécutifs', unlocked: true },
+  { id: 'streak_30', name: 'Mois parfait', icon: Crown, color: 'bg-red-500', desc: '30 jours consécutifs', unlocked: false },
+  { id: 'events_5', name: 'Participant actif', icon: Target, color: 'bg-cyan-500', desc: 'Participer à 5 événements', unlocked: true },
+  { id: 'events_20', name: 'Vétéran', icon: Award, color: 'bg-pink-500', desc: 'Participer à 20 événements', unlocked: false },
+];
 
 const ProfilePage = () => {
   const navigate = useNavigate();
-  const { user, isLoggedIn, logout, updateUser } = useAuth();
+  const { user, isLoggedIn, updateUser } = useAuth();
   const [events, setEvents] = useState<RCTEvent[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSyncing, setIsSyncing] = useState(false);
   
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [showSettingsMenu, setShowSettingsMenu] = useState(false);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [editName, setEditName] = useState('');
-  const [editBio, setEditBio] = useState('');
-  const [isSaving, setIsSaving] = useState(false);
+  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+  const [viewMode, setViewMode] = useState<'grid' | 'badges'>('grid');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -49,34 +60,6 @@ const ProfilePage = () => {
     fetchData();
   }, [user]);
 
-  const openEditModal = () => {
-    if (user) {
-      setEditName(user.name);
-      setEditBio((user as any).bio || '');
-    }
-    setShowEditModal(true);
-  };
-
-  const handleSaveProfile = async () => {
-    if (!editName.trim()) return;
-    setIsSaving(true);
-    try {
-      if (updateUser) {
-        updateUser({ name: editName.trim(), bio: editBio.trim() });
-      }
-      setShowEditModal(false);
-    } catch (error) {
-      console.error('Error saving profile:', error);
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleLogout = () => {
-    logout();
-    navigate('/');
-  };
-
   if (!isLoggedIn || !user) {
     return (
       <div className="pb-20 pt-6 px-4">
@@ -94,7 +77,33 @@ const ProfilePage = () => {
 
   const myEvents = events.filter(e => e.participants.includes(user.id));
   const myPosts = posts.filter(p => p.authorId === user.id);
-  const totalDistance = myPosts.reduce((acc, p) => acc + (parseFloat(p.distance || '0') || 0), 0);
+  const totalDistance = user.stats?.totalDistance || 0;
+
+  const handleSyncStrava = async () => {
+    if (!user.strava?.connected) {
+      navigate('/strava');
+      return;
+    }
+    setIsSyncing(true);
+    try {
+      const response = await stravaApi.syncDistance();
+      if (response.success && response.data) {
+        // Update user stats
+        updateUser({
+          ...user,
+          stats: {
+            ...user.stats,
+            totalDistance: response.data.distance,
+            totalRuns: response.data.runs,
+          },
+        });
+      }
+    } catch (error) {
+      console.error('Error syncing Strava distance:', error);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   const roleBadge = () => {
     switch (user.role) {
@@ -113,68 +122,12 @@ const ProfilePage = () => {
       {/* Header with Settings */}
       <div className="px-4 py-4 flex items-center justify-between border-b border-border">
         <h1 className="font-display font-bold text-xl">{user.name.split(' ')[0]}</h1>
-        <div className="relative">
-          <button 
-            onClick={() => setShowSettingsMenu(!showSettingsMenu)}
-            className="w-10 h-10 rounded-full bg-muted flex items-center justify-center"
-          >
-            <Settings className="w-5 h-5" />
-          </button>
-          
-          {/* Settings Dropdown */}
-          {showSettingsMenu && (
-            <>
-              <div 
-                className="fixed inset-0 z-40" 
-                onClick={() => setShowSettingsMenu(false)}
-              />
-              <div className="absolute right-0 mt-2 w-56 bg-card rounded-xl rct-shadow-card overflow-hidden z-50 border border-border">
-                <button
-                  onClick={() => {
-                    setShowSettingsMenu(false);
-                    navigate('/settings');
-                  }}
-                  className="w-full px-4 py-3 flex items-center gap-3 hover:bg-muted transition-colors text-left"
-                >
-                  <Settings className="w-5 h-5" />
-                  <span className="font-medium">Réglages</span>
-                </button>
-                <button
-                  onClick={() => {
-                    setShowSettingsMenu(false);
-                    navigate('/strava');
-                  }}
-                  className="w-full px-4 py-3 flex items-center gap-3 hover:bg-muted transition-colors text-left border-t border-border"
-                >
-                  <Activity className="w-5 h-5" />
-                  <span className="font-medium">Strava</span>
-                </button>
-                {(user.role === 'admin' || user.role === 'coach' || user.role === 'group_admin') && (
-                  <button
-                    onClick={() => {
-                      setShowSettingsMenu(false);
-                      navigate('/admin');
-                    }}
-                    className="w-full px-4 py-3 flex items-center gap-3 hover:bg-muted transition-colors text-left border-t border-border"
-                  >
-                    <Shield className="w-5 h-5 text-red-500" />
-                    <span className="font-medium">Administration</span>
-                  </button>
-                )}
-                <button
-                  onClick={() => {
-                    setShowSettingsMenu(false);
-                    handleLogout();
-                  }}
-                  className="w-full px-4 py-3 flex items-center gap-3 hover:bg-destructive/10 transition-colors text-left border-t border-border text-destructive"
-                >
-                  <LogOut className="w-5 h-5" />
-                  <span className="font-medium">Se déconnecter</span>
-                </button>
-              </div>
-            </>
-          )}
-        </div>
+        <button 
+          onClick={() => navigate('/settings')}
+          className="w-10 h-10 rounded-full bg-muted flex items-center justify-center"
+        >
+          <Settings className="w-5 h-5" />
+        </button>
       </div>
 
       {/* Profile Info */}
@@ -216,23 +169,32 @@ const ProfilePage = () => {
           {(user as any).bio && (
             <p className="text-sm">{(user as any).bio}</p>
           )}
-          {user.group && (
-            <p className="text-xs text-muted-foreground mt-1">🏃‍♂️ {user.group}</p>
-          )}
+          <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+            {user.level && (
+              <span className="inline-flex items-center gap-1">
+                <Trophy className="w-3 h-3" />
+                <span className="capitalize">{user.level}</span>
+              </span>
+            )}
+            {user.group && (
+              <span className="inline-flex items-center gap-1">
+                🏃‍♂️ {user.group}
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Edit Profile Button */}
         <button
-          onClick={openEditModal}
+          onClick={() => navigate('/edit-profile')}
           className="w-full py-1.5 rounded-lg bg-muted font-semibold text-sm"
         >
           Modifier le profil
         </button>
       </div>
 
-      {/* Records Section */}
+      {/* Stats Section */}
       <div className="px-4 py-3 border-y border-border">
-        <h3 className="font-bold text-sm mb-2">📊 Records</h3>
         <div className="grid grid-cols-3 gap-2">
           <div className="bg-muted rounded-lg p-2 text-center">
             <p className="text-lg font-bold">{totalDistance.toFixed(1)}</p>
@@ -247,6 +209,16 @@ const ProfilePage = () => {
             <p className="text-[10px] text-muted-foreground">Participations</p>
           </div>
         </div>
+        {user.strava?.connected && (
+          <button
+            onClick={handleSyncStrava}
+            disabled={isSyncing}
+            className="w-full mt-2 py-2 rounded-lg bg-[#FC4C02] hover:bg-[#E34402] text-white font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
+            {isSyncing ? 'Synchronisation...' : 'Synchroniser avec Strava'}
+          </button>
+        )}
       </div>
 
       {/* View Toggle */}
@@ -262,14 +234,14 @@ const ProfilePage = () => {
           <Grid3x3 className="w-5 h-5" />
         </button>
         <button
-          onClick={() => setViewMode('list')}
+          onClick={() => setViewMode('badges')}
           className={`flex-1 py-3 flex items-center justify-center gap-2 border-b-2 transition-colors ${
-            viewMode === 'list' 
+            viewMode === 'badges' 
               ? 'border-foreground' 
               : 'border-transparent text-muted-foreground'
           }`}
         >
-          <LayoutList className="w-5 h-5" />
+          <Award className="w-5 h-5" />
         </button>
       </div>
 
@@ -295,7 +267,7 @@ const ProfilePage = () => {
               <div 
                 key={post.id} 
                 className="aspect-square bg-muted relative overflow-hidden cursor-pointer"
-                onClick={() => navigate('/community')}
+                onClick={() => setSelectedPost(post)}
               >
                 {post.image ? (
                   <>
@@ -319,117 +291,62 @@ const ProfilePage = () => {
             ))}
           </div>
         ) : (
-          <div className="divide-y divide-border">
-            {myPosts.map(post => (
-              <div 
-                key={post.id}
-                className="py-4 px-3 flex gap-3 cursor-pointer hover:bg-muted/50 transition-colors"
-                onClick={() => navigate('/community')}
-              >
-                {post.image ? (
-                  <div className="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 bg-muted">
-                    <img src={post.image} alt="" className="w-full h-full object-cover" />
+          /* Badges Grid */
+          <div className="p-4 space-y-4">
+            <div className="grid grid-cols-4 gap-3">
+              {BADGES.map(badge => {
+                const Icon = badge.icon;
+                return (
+                  <div 
+                    key={badge.id} 
+                    className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all ${
+                      badge.unlocked 
+                        ? 'bg-card rct-shadow-card' 
+                        : 'bg-muted/50 opacity-50'
+                    }`}
+                  >
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                      badge.unlocked ? badge.color : 'bg-muted'
+                    }`}>
+                      <Icon className={`w-5 h-5 ${badge.unlocked ? 'text-white' : 'text-muted-foreground'}`} />
+                    </div>
+                    <p className="text-[10px] font-medium text-center leading-tight">{badge.name}</p>
                   </div>
-                ) : (
-                  <div className="w-20 h-20 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center flex-shrink-0">
-                    <ImageIcon className="w-6 h-6 text-primary/40" />
-                  </div>
-                )}
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm line-clamp-2">{post.content}</p>
-                  <div className="flex items-center gap-4 mt-1">
-                    <span className="text-xs text-muted-foreground">
-                      {post.likes?.length || 0} j'aime
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {post.comments?.length || 0} commentaires
-                    </span>
-                  </div>
+                );
+              })}
+            </div>
+            <div className="bg-card rounded-2xl rct-shadow-card p-4">
+              <p className="text-sm font-semibold mb-2">Progression des badges</p>
+              <div className="flex items-center gap-2">
+                <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                  <div 
+                    className="h-full rct-gradient-hero rounded-full transition-all" 
+                    style={{ width: `${(BADGES.filter(b => b.unlocked).length / BADGES.length) * 100}%` }}
+                  />
                 </div>
+                <span className="text-xs font-medium text-muted-foreground">
+                  {BADGES.filter(b => b.unlocked).length}/{BADGES.length}
+                </span>
               </div>
-            ))}
+            </div>
           </div>
         )}
       </div>
 
-      {/* Edit Profile Modal */}
-      {showEditModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center">
-          <div className="bg-card w-full sm:w-96 sm:rounded-2xl rounded-t-2xl p-6 max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom duration-300">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="font-display font-bold text-lg">Modifier le profil</h3>
+      {/* Single Post Modal */}
+      {selectedPost && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-card w-full max-w-lg rounded-2xl overflow-hidden max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200">
+            <div className="sticky top-0 bg-card border-b border-border px-4 py-3 flex items-center justify-between z-10">
+              <h3 className="font-display font-bold text-base">Publication</h3>
               <button 
-                onClick={() => setShowEditModal(false)}
+                onClick={() => setSelectedPost(null)}
                 className="w-8 h-8 rounded-full bg-muted flex items-center justify-center"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
-
-            {/* Avatar Preview */}
-            <div className="flex justify-center mb-6">
-              <div className="relative">
-                <div className="w-24 h-24 rounded-full rct-gradient-hero flex items-center justify-center">
-                  <span className="text-3xl font-bold text-white">
-                    {editName.split(' ').map(n => n[0]).join('').slice(0, 2)}
-                  </span>
-                </div>
-                <button className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-                  <Camera className="w-4 h-4 text-white" />
-                </button>
-              </div>
-            </div>
-
-            {/* Form Fields */}
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium mb-1 block">Nom complet</label>
-                <input
-                  type="text"
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-muted border-0 focus:ring-2 focus:ring-primary outline-none"
-                  placeholder="Votre nom"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium mb-1 block">Bio</label>
-                <textarea
-                  value={editBio}
-                  onChange={(e) => setEditBio(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-muted border-0 focus:ring-2 focus:ring-primary outline-none resize-none"
-                  placeholder="Parlez-nous de vous..."
-                  rows={3}
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium mb-1 block">Groupe</label>
-                <input
-                  type="text"
-                  value={user.group || ''}
-                  disabled
-                  className="w-full px-4 py-3 rounded-xl bg-muted border-0 text-muted-foreground cursor-not-allowed"
-                />
-                <p className="text-xs text-muted-foreground mt-1">Contactez un admin pour changer de groupe</p>
-              </div>
-            </div>
-
-            {/* Actions */}
-            <div className="flex gap-3 mt-6">
-              <button
-                onClick={() => setShowEditModal(false)}
-                className="flex-1 py-3 rounded-xl bg-muted font-semibold"
-              >
-                Annuler
-              </button>
-              <button
-                onClick={handleSaveProfile}
-                disabled={isSaving || !editName.trim()}
-                className="flex-1 py-3 rounded-xl rct-gradient-hero text-white font-semibold disabled:opacity-50"
-              >
-                {isSaving ? 'Enregistrement...' : 'Enregistrer'}
-              </button>
-            </div>
+            <PostCard post={selectedPost} />
           </div>
         </div>
       )}

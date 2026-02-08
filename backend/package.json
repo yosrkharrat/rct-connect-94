@@ -5,6 +5,9 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
+    "link-admin-strava": "tsx src/scripts/link-admin-strava.ts",
+    "force-link-admin": "tsx src/scripts/force-link-admin.ts",
+    "strava-auth-url": "tsx src/scripts/get-strava-auth-url.ts",
     "build": "tsc",
     "start": "node dist/index.js",
     "seed": "tsx src/seed.ts"

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Send, Plus, Users, MessageCircle } from 'lucide-react';
+import { ArrowLeft, Send, Plus, Users, MessageCircle, Mic } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { getChatGroups, getChatMessages, sendChatMessage, createChatGroup, getUsers, addNotification } from '@/lib/store';
 import { ChatGroup, ChatMessage, User } from '@/types';
@@ -22,6 +22,7 @@ const MessagingPage = () => {
   const [newGroupDesc, setNewGroupDesc] = useState('');
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const [allUsers, setAllUsers] = useState<User[]>([]);
+  const [voiceDraft, setVoiceDraft] = useState<{ to: string; message: string } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const canSendMessages = isAdmin || isCoach || isGroupAdmin;
@@ -32,6 +33,32 @@ const MessagingPage = () => {
     setGroups(getChatGroups(user.id));
     setAllUsers(getUsers().filter(u => u.id !== user.id));
   }, [user]);
+
+  // Check for voice-filled message
+  useEffect(() => {
+    const draft = sessionStorage.getItem('voice_message_draft');
+    if (draft) {
+      try {
+        const data = JSON.parse(draft);
+        setVoiceDraft(data);
+        if (data.message) {
+          setNewMsg(data.message);
+        }
+        // Try to find and select the matching group
+        if (data.to && groups.length > 0) {
+          const matchingGroup = groups.find(g => 
+            g.name.toLowerCase().includes(data.to.toLowerCase())
+          );
+          if (matchingGroup) {
+            setSelectedGroup(matchingGroup.id);
+          }
+        }
+        sessionStorage.removeItem('voice_message_draft');
+      } catch (e) {
+        console.error('Error parsing voice draft:', e);
+      }
+    }
+  }, [groups]);
 
   useEffect(() => {
     if (selectedGroup) {
@@ -204,6 +231,11 @@ const MessagingPage = () => {
         {/* Input - only for admins/coaches */}
         {canSendMessages ? (
           <div className="px-4 py-3 bg-card border-t border-border safe-bottom">
+            {voiceDraft && newMsg && (
+              <div className="flex items-center gap-1.5 mb-2 px-2 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium w-fit">
+                <Mic className="w-3 h-3" /> Message préparé par l'assistant
+              </div>
+            )}
             <div className="flex gap-2">
               <input
                 id="message-input"

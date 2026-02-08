@@ -117,33 +117,25 @@ const EventDetailPage = () => {
         </div>
       </div>
 
-      {/* Participants: visible only to authenticated users */}
-      {user ? (
-        <div className="mx-4 bg-card rounded-2xl rct-shadow-card p-4 mb-4">
-          <h3 className="font-display font-bold text-base mb-3">Participants ({participants.length})</h3>
-          <div className="space-y-2">
-            {participants.map(p => p && (
-              <div key={p.id} className="flex items-center gap-3 p-2 rounded-xl bg-muted">
-                <div className="w-9 h-9 rounded-full rct-gradient-hero flex items-center justify-center">
-                  <span className="text-xs font-bold text-white">{p.name.slice(0, 2).toUpperCase()}</span>
-                </div>
-                <div>
-                  <p className="text-sm font-semibold">{p.name}</p>
-                  <p className="text-[11px] text-muted-foreground">{p.group || 'Membre'}</p>
-                </div>
+      {/* Participants */}
+      <div className="mx-4 bg-card rounded-2xl rct-shadow-card p-4 mb-4">
+        <h3 className="font-display font-bold text-base mb-3">
+          Participants ({participants.length})
+        </h3>
+        <div className="space-y-2">
+          {participants.map(p => p && (
+            <div key={p.id} className="flex items-center gap-3 p-2 rounded-xl bg-muted">
+              <div className="w-9 h-9 rounded-full rct-gradient-hero flex items-center justify-center">
+                <span className="text-xs font-bold text-white">{p.name.slice(0, 2).toUpperCase()}</span>
               </div>
-            ))}
-          </div>
+              <div>
+                <p className="text-sm font-semibold">{p.name}</p>
+                <p className="text-[11px] text-muted-foreground">{p.group || 'Membre'}</p>
+              </div>
+            </div>
+          ))}
         </div>
-      ) : (
-        <div className="mx-4 bg-card rounded-2xl rct-shadow-card p-4 mb-4">
-          <h3 className="font-display font-bold text-base mb-2">Participants</h3>
-          <p className="text-sm text-muted-foreground">Créez un compte ou connectez-vous pour voir la liste des participants.</p>
-          <div className="mt-3">
-            <button onClick={() => navigate('/login')} className="w-full h-10 bg-primary text-primary-foreground rounded-xl font-semibold">Créer un compte / Se connecter</button>
-          </div>
-        </div>
-      )}
+      </div>
 
       {/* Join / Leave */}
       {user && (

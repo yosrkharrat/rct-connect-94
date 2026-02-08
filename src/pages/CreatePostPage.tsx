@@ -1,6 +1,6 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Image, X, MapPin, Timer } from 'lucide-react';
+import { ArrowLeft, Image, X, MapPin, Timer, Mic } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { createPost } from '@/lib/store';
 
@@ -13,6 +13,27 @@ const CreatePostPage = () => {
   const [pace, setPace] = useState('');
   const [type, setType] = useState<'post' | 'reel'>('post');
   const fileRef = useRef<HTMLInputElement>(null);
+  const [voiceFilled, setVoiceFilled] = useState(false);
+
+  // Load voice-filled data from sessionStorage
+  useEffect(() => {
+    const voiceDraft = sessionStorage.getItem('voice_post_draft');
+    if (voiceDraft) {
+      try {
+        const data = JSON.parse(voiceDraft);
+        if (data.content) setContent(data.content);
+        if (data.distance) setDistance(data.distance);
+        if (data.pace) setPace(data.pace);
+        if (data.type && ['post', 'reel'].includes(data.type)) {
+          setType(data.type as 'post' | 'reel');
+        }
+        setVoiceFilled(true);
+        sessionStorage.removeItem('voice_post_draft');
+      } catch (e) {
+        console.error('Error parsing voice draft:', e);
+      }
+    }
+  }, []);
 
   const handleImage = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -51,6 +72,11 @@ const CreatePostPage = () => {
             <ArrowLeft className="w-5 h-5" />
           </button>
           <h1 className="font-display font-extrabold text-xl">Nouvelle publication</h1>
+          {voiceFilled && (
+            <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">
+              <Mic className="w-3 h-3" />
+            </div>
+          )}
         </div>
         <button onClick={handleSubmit} disabled={!content.trim() && !image}
           className="px-5 py-2 rct-gradient-hero text-white text-sm font-bold rounded-full disabled:opacity-50 rct-glow-blue transition-transform active:scale-95">
@@ -87,7 +113,7 @@ const CreatePostPage = () => {
         {/* Image preview */}
         {image && (
           <div className="relative mb-4 rounded-2xl overflow-hidden">
-            <img src={image} alt="Preview" className="w-full h-48 object-cover" />
+            <img src={image} alt="Preview" className="w-full h-48 object-cover" width={400} height={192} />
             <button onClick={() => setImage(null)}
               className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/50 flex items-center justify-center">
               <X className="w-4 h-4 text-white" />

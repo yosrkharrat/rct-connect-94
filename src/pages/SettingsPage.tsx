@@ -1,21 +1,25 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Moon, Sun, LogOut, Trash2, User, Bell, Shield, ChevronRight, Accessibility } from 'lucide-react';
+import { ArrowLeft, Moon, Sun, LogOut, Trash2, User, Bell, Shield, ChevronRight, Accessibility, Globe, Check } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useLanguage, Language } from '@/contexts/LanguageContext';
 import { resetStore } from '@/lib/store';
 
 const SettingsPage = () => {
   const navigate = useNavigate();
-  const { user, logout, isAdmin } = useAuth();
+  const { user, logout, isAdmin, isCoach, isGroupAdmin } = useAuth();
   const { theme, toggleTheme, isDark } = useTheme();
+  const { language, setLanguage, t, languageNames } = useLanguage();
+  const [showLanguageModal, setShowLanguageModal] = useState(false);
 
   const handleLogout = () => {
     logout();
-    navigate('/');
+    navigate('/login');
   };
 
   const handleReset = () => {
-    if (confirm('Réinitialiser toutes les données? Cette action est irréversible.')) {
+    if (confirm(t('settings.reset') + '?')) {
       resetStore();
       logout();
       navigate('/');
@@ -24,11 +28,11 @@ const SettingsPage = () => {
 
   const sections = [
     {
-      title: 'Apparence',
+      title: t('settings.appearance'),
       items: [
         {
           icon: isDark ? Moon : Sun,
-          label: isDark ? 'Mode sombre' : 'Mode clair',
+          label: isDark ? t('settings.darkMode') : t('settings.lightMode'),
           desc: 'Changer le thème de l\'app',
           action: toggleTheme,
           trailing: (
@@ -37,26 +41,32 @@ const SettingsPage = () => {
             </div>
           ),
         },
+        {
+          icon: Globe,
+          label: t('settings.language'),
+          desc: languageNames[language],
+          action: () => setShowLanguageModal(true),
+        },
       ],
     },
     {
-      title: 'Accessibilité',
+      title: t('settings.accessibility'),
       items: [
-        { icon: Accessibility, label: 'Paramètres d\'accessibilité', desc: 'Contraste, taille du texte, assistant vocal', action: () => navigate('/accessibility') },
+        { icon: Accessibility, label: t('settings.accessibility'), desc: 'Contraste, taille du texte, assistant vocal', action: () => navigate('/accessibility') },
       ],
     },
     {
-      title: 'Compte',
+      title: t('settings.account'),
       items: [
-        { icon: User, label: 'Modifier le profil', desc: 'Nom, photo, groupe', action: () => navigate('/profile') },
-        { icon: Bell, label: 'Notifications', desc: 'Gérer les alertes d\'événements', action: () => navigate('/notifications/settings') },
-        ...(isAdmin ? [{ icon: Shield, label: 'Administration', desc: 'Gestion utilisateurs & rôles', action: () => navigate('/admin') }] : []),
+        { icon: User, label: t('profile.editProfile'), desc: 'Nom, photo, groupe', action: () => navigate('/edit-profile') },
+        { icon: Bell, label: t('settings.notifications'), desc: 'Gérer les alertes d\'événements', action: () => navigate('/notifications/settings') },
+        ...((isAdmin || isCoach || isGroupAdmin) ? [{ icon: Shield, label: t('settings.admin'), desc: 'Gestion utilisateurs & événements', action: () => navigate('/admin') }] : []),
       ],
     },
     {
-      title: 'Données',
+      title: t('settings.data'),
       items: [
-        { icon: Trash2, label: 'Réinitialiser les données', desc: 'Revenir aux données initiales', action: handleReset, danger: true },
+        { icon: Trash2, label: t('settings.reset'), desc: 'Revenir aux données initiales', action: handleReset, danger: true },
       ],
     },
   ];
@@ -101,9 +111,56 @@ const SettingsPage = () => {
         </div>
       ))}
 
+      {/* Logout Button */}
+      <div className="mx-4 mt-6">
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center justify-center gap-2 px-4 py-3.5 bg-destructive/10 rounded-2xl text-destructive font-semibold hover:bg-destructive/20 transition-colors"
+        >
+          <LogOut className="w-5 h-5" />
+          {t('settings.logout')}
+        </button>
+      </div>
+
       <p className="text-center text-[11px] text-muted-foreground mt-8 mb-4">
         RCT Connect v1.0 · Running Club Tunis © 2026
       </p>
+
+      {/* Language Modal */}
+      {showLanguageModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-card w-full max-w-sm rounded-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="px-4 py-3 border-b border-border">
+              <h3 className="font-display font-bold text-base">{t('settings.language')}</h3>
+            </div>
+            <div className="p-2">
+              {(['fr', 'en', 'ar', 'tn'] as Language[]).map((lang) => (
+                <button
+                  key={lang}
+                  onClick={() => {
+                    setLanguage(lang);
+                    setShowLanguageModal(false);
+                  }}
+                  className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-colors ${
+                    language === lang ? 'bg-primary/10 text-primary' : 'hover:bg-muted'
+                  }`}
+                >
+                  <span className="font-medium">{languageNames[lang]}</span>
+                  {language === lang && <Check className="w-5 h-5" />}
+                </button>
+              ))}
+            </div>
+            <div className="p-4 border-t border-border">
+              <button
+                onClick={() => setShowLanguageModal(false)}
+                className="w-full py-2.5 rounded-xl bg-muted font-semibold text-sm"
+              >
+                {t('common.cancel')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

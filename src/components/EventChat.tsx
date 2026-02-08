@@ -169,7 +169,7 @@ const EventChat = ({ eventId, eventTitle, isOpen, onClose }: EventChatProps) => 
                           {!isOwn && (
                             <div className="flex items-center gap-2 mb-1">
                               {message.sender_avatar ? (
-                                <img src={message.sender_avatar} alt={message.sender_name} className="w-6 h-6 rounded-full" />
+                                <img src={message.sender_avatar} alt={message.sender_name} className="w-6 h-6 rounded-full" width={24} height={24} />
                               ) : (
                                 <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center">
                                   <span className="text-xs font-bold text-primary">
@@ -239,7 +239,7 @@ const EventChat = ({ eventId, eventTitle, isOpen, onClose }: EventChatProps) => 
                 {members.map((member) => (
                   <div key={member.user_id} className="flex items-center gap-2">
                     {member.avatar ? (
-                      <img src={member.avatar} alt={member.name} className="w-8 h-8 rounded-full" />
+                      <img src={member.avatar} alt={member.name} className="w-8 h-8 rounded-full" width={32} height={32} />
                     ) : (
                       <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
                         <span className="text-xs font-bold text-primary">

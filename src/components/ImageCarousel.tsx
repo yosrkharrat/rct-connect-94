@@ -100,7 +100,7 @@ const ImageCarousel = ({ images }: ImageCarouselProps) => {
   if (images.length === 1) {
     return (
       <div className="w-full aspect-[4/3] bg-muted overflow-hidden">
-        <img src={images[0]} alt="" className="w-full h-full object-cover" loading="lazy" />
+        <img src={images[0]} alt="" className="w-full h-full object-cover" loading="lazy" width={400} height={300} />
       </div>
     );
   }
@@ -131,6 +131,8 @@ const ImageCarousel = ({ images }: ImageCarouselProps) => {
                 className="w-full h-full object-cover pointer-events-none"
                 draggable={false}
                 loading="lazy"
+                width={400}
+                height={300}
               />
             </div>
           ))}
@@ -156,22 +158,6 @@ const ImageCarousel = ({ images }: ImageCarouselProps) => {
           <ChevronRight className="w-5 h-5" />
         </button>
       )}
-
-      {/* Dots indicator */}
-      <div className="absolute bottom-3 left-0 right-0 flex items-center justify-center gap-1.5">
-        {images.map((_, i) => (
-          <button
-            key={i}
-            onClick={() => goTo(i)}
-            className={`rounded-full transition-all duration-200 ${
-              i === current
-                ? 'w-2 h-2 bg-white shadow-md'
-                : 'w-1.5 h-1.5 bg-white/50'
-            }`}
-            aria-label={`Image ${i + 1}`}
-          />
-        ))}
-      </div>
 
       {/* Counter badge */}
       <div className="absolute top-3 right-3 bg-black/50 backdrop-blur-sm text-white text-xs rounded-full px-2.5 py-1 font-medium">

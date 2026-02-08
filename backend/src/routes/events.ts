@@ -52,28 +52,24 @@ router.get('/:id', optionalAuth, (req: AuthRequest, res) => {
       return res.status(404).json({ success: false, error: 'Événement non trouvé' });
     }
 
-    // Only expose participant details to authenticated users
-    const participants = req.user ? dbHelper.data.event_participants.filter(p => p.event_id === event.id) : [];
-    const participantUsers = req.user
-      ? participants.map(p => {
-          const user = dbHelper.data.users.find(u => u.id === p.user_id);
-          return user ? { id: user.id, name: user.name, avatar: user.avatar } : null;
-        }).filter(Boolean)
-      : [];
+    const participants = dbHelper.data.event_participants.filter(p => p.event_id === event.id);
+    const participantUsers = participants.map(p => {
+      const user = dbHelper.data.users.find(u => u.id === p.user_id);
+      return user ? { id: user.id, name: user.name, avatar: user.avatar } : null;
+    }).filter(Boolean);
 
     const isJoined = req.user ? participants.some(p => p.user_id === req.user!.userId) : false;
     const creator = dbHelper.data.users.find(u => u.id === event.created_by);
 
     res.json({
       success: true,
-        data: {
-          ...event,
-          participants: participantUsers,
-          // Keep showing the participant count even to anonymous users, but only compute full list when authenticated
-          participant_count: req.user ? participants.length : dbHelper.data.event_participants.filter(p => p.event_id === event.id).length,
-          is_joined: isJoined,
-          creator: creator ? { id: creator.id, name: creator.name, avatar: creator.avatar } : null,
-        },
+      data: {
+        ...event,
+        participants: participantUsers,
+        participant_count: participants.length,
+        is_joined: isJoined,
+        creator: creator ? { id: creator.id, name: creator.name, avatar: creator.avatar } : null,
+      },
     });
   } catch (error) {
     console.error('Get event error:', error);

@@ -45,7 +45,7 @@ const HomePage = () => {
     <div className="pb-20">
       {/* Hero */}
       <div className="relative">
-        <img src={heroBanner} alt="Coureur brandissant le drapeau Running Club Tunis dans les montagnes" className="w-full" />
+        <img src={heroBanner} alt="Coureur brandissant le drapeau Running Club Tunis dans les montagnes" className="w-full" width={800} height={400} style={{ aspectRatio: '2/1' }} />
         <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-background via-background/80 to-transparent" />
         <div className="absolute top-2 left-2 right-2 flex items-center justify-between">
           <button onClick={() => navigate('/history')} className="w-10 h-10 rounded-full bg-black/30 backdrop-blur-md flex items-center justify-center" aria-label="Voir l'historique du club">
@@ -72,7 +72,7 @@ const HomePage = () => {
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-display font-bold text-lg">Actualités</h2>
           {isLoggedIn && (
-            <button onClick={() => navigate('/create-post')} className="flex items-center gap-1 text-sm text-primary font-semibold" aria-label="Créer une nouvelle publication">
+            <button onClick={() => navigate('/create-post')} className="flex items-center gap-1 text-sm text-[#c2410c] dark:text-primary font-bold" aria-label="Créer une nouvelle publication">
               <Plus className="w-3.5 h-3.5" /> Publier
             </button>
           )}

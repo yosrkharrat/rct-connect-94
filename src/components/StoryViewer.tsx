@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, ChevronLeft, ChevronRight, Eye, Pause, Play } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Eye, Pause, Play, Trash2 } from 'lucide-react';
 import { Story } from '@/types';
 import { viewStory } from '@/lib/store';
 import { useAuth } from '@/contexts/AuthContext';
+import { storiesApi } from '@/lib/api';
 
 interface StoryViewerProps {
   storyGroups: [string, Story[]][];  // Array of [userId, stories[]]
@@ -16,6 +17,7 @@ const StoryViewer = ({ storyGroups, initialGroupIndex, onClose }: StoryViewerPro
   const [storyIndex, setStoryIndex] = useState(0);
   const [progress, setProgress] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const currentGroup = storyGroups[groupIndex];
@@ -117,6 +119,30 @@ const StoryViewer = ({ storyGroups, initialGroupIndex, onClose }: StoryViewerPro
     return `${Math.floor(diff / 3600000)}h`;
   };
 
+  const handleDeleteStory = async () => {
+    if (!user || story.authorId !== user.id) return;
+    if (!confirm('Supprimer cette story ?')) return;
+    
+    setIsDeleting(true);
+    try {
+      await storiesApi.delete(story.id);
+      // Move to next story or close if last
+      if (storyIndex < currentStories.length - 1) {
+        setStoryIndex(storyIndex + 1);
+      } else if (groupIndex < storyGroups.length - 1) {
+        setGroupIndex(groupIndex + 1);
+        setStoryIndex(0);
+      } else {
+        onClose();
+      }
+    } catch (error) {
+      console.error('Error deleting story:', error);
+      alert('Erreur lors de la suppression');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <div 
       ref={containerRef}
@@ -166,6 +192,16 @@ const StoryViewer = ({ storyGroups, initialGroupIndex, onClose }: StoryViewerPro
           >
             {isPaused ? <Play className="w-4 h-4 text-white" /> : <Pause className="w-4 h-4 text-white" />}
           </button>
+          {user && story.authorId === user.id && (
+            <button 
+              onClick={handleDeleteStory}
+              disabled={isDeleting}
+              className="w-9 h-9 rounded-full bg-red-500/80 flex items-center justify-center hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              aria-label="Supprimer cette story"
+            >
+              <Trash2 className="w-4 h-4 text-white" />
+            </button>
+          )}
           <button 
             onClick={onClose} 
             className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"

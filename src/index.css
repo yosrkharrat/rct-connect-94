@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap");
+/* Fonts are loaded in index.html for better performance */
 
 @tailwind base;
 @tailwind components;
@@ -12,9 +12,9 @@
     --card-foreground: 220 25% 10%;
     --popover: 0 0% 100%;
     --popover-foreground: 220 25% 10%;
-    --primary: 14 95% 48%;
+    --primary: 24 95% 40%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 25 95% 55%;
+    --secondary: 25 95% 48%;
     --secondary-foreground: 0 0% 100%;
     --muted: 220 15% 92%;
     --muted-foreground: 220 12% 38%;

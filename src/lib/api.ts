@@ -18,20 +18,44 @@ import type { User, RCTEvent, Post, Story, Course, AppNotification, Comment, Mes
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
-// Track whether backend is available
+// Track whether backend is available - optimistic start
 let backendAvailable: boolean | null = null;
+let healthCheckPromise: Promise<boolean> | null = null;
+
+// Non-blocking health check - starts immediately on module load
+function startHealthCheck(): Promise<boolean> {
+  if (healthCheckPromise) return healthCheckPromise;
+  healthCheckPromise = (async () => {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 1500);
+      const res = await fetch(`${API_BASE_URL}/health`, { 
+        signal: controller.signal,
+        method: 'HEAD' // Faster than GET
+      });
+      clearTimeout(timeoutId);
+      backendAvailable = res.ok;
+    } catch {
+      backendAvailable = false;
+    }
+    // Re-check every 30 seconds
+    setTimeout(() => { 
+      backendAvailable = null; 
+      healthCheckPromise = null;
+    }, 30000);
+    return backendAvailable;
+  })();
+  return healthCheckPromise;
+}
+
+// Start health check immediately (non-blocking)
+startHealthCheck();
 
 async function checkBackend(): Promise<boolean> {
+  // If we already know, return immediately
   if (backendAvailable !== null) return backendAvailable;
-  try {
-    const res = await fetch(`${API_BASE_URL}/health`, { signal: AbortSignal.timeout(2000) });
-    backendAvailable = res.ok;
-  } catch {
-    backendAvailable = false;
-  }
-  // Re-check every 30 seconds
-  setTimeout(() => { backendAvailable = null; }, 30000);
-  return backendAvailable;
+  // Wait for the already-started check
+  return startHealthCheck();
 }
 
 // Token management
@@ -251,6 +275,9 @@ export const stravaApi = {
 
   disconnect: () =>
     request('/strava/disconnect', { method: 'DELETE' }),
+
+  syncDistance: () =>
+    request<{ distance: number; runs: number }>('/strava/sync-distance', { method: 'POST' }),
 };
 
 // ============ EVENTS API ============

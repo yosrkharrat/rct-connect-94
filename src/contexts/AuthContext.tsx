@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, UserRole } from '@/types';
 import { initStore } from '@/lib/store';
-import { authApi, setAuthToken, getAuthToken } from '@/lib/api';
+import { authApi, setAuthToken, getAuthToken, usersApi } from '@/lib/api';
 import { mapApiUser } from '@/lib/apiMappers';
 
 interface AuthContextType {
@@ -12,7 +12,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   loginAsVisitor: () => void;
   logout: () => void;
-  updateUser: (updates: Partial<User & { bio?: string }>) => void;
+  updateUser: (updates: Partial<User & { bio?: string }>) => Promise<void>;
   hasRole: (...roles: UserRole[]) => boolean;
   isAdmin: boolean;
   isCoach: boolean;
@@ -110,12 +110,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('rct_visitor');
   };
 
-  const updateUser = (updates: Partial<User & { bio?: string }>) => {
+  const updateUser = async (updates: Partial<User & { bio?: string }>) => {
     if (user) {
-      const updatedUser = { ...user, ...updates };
-      setUser(updatedUser as User);
-      // Save to localStorage for persistence
-      localStorage.setItem('rct_user_profile', JSON.stringify(updatedUser));
+      try {
+        // Call API to persist changes
+        const apiUpdates: any = {};
+        if (updates.name !== undefined) apiUpdates.name = updates.name;
+        if (updates.avatar !== undefined) apiUpdates.avatar = updates.avatar;
+        if (updates.level !== undefined) apiUpdates.level = updates.level;
+        
+        if (Object.keys(apiUpdates).length > 0) {
+          await usersApi.update(user.id, apiUpdates);
+        }
+        
+        // Update local state
+        const updatedUser = { ...user, ...updates };
+        setUser(updatedUser as User);
+        // Save to localStorage for persistence
+        localStorage.setItem('rct_user_profile', JSON.stringify(updatedUser));
+      } catch (error) {
+        console.error('Failed to update user:', error);
+        // Still update local state even if API call fails
+        const updatedUser = { ...user, ...updates };
+        setUser(updatedUser as User);
+        localStorage.setItem('rct_user_profile', JSON.stringify(updatedUser));
+      }
     }
   };
 

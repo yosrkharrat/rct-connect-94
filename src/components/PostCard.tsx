@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Heart, MessageCircle, Share2, Send } from 'lucide-react';
+import { Heart, MessageCircle, Send } from 'lucide-react';
 import { toggleLike, addComment, getUsers } from '@/lib/store';
 import { useAuth } from '@/contexts/AuthContext';
 import ImageCarousel from '@/components/ImageCarousel';
@@ -100,7 +100,7 @@ const PostCard = ({ post }: PostCardProps) => {
       {/* Single image */}
       {!post.images?.length && post.image && (
         <div className="w-full aspect-[4/3] bg-muted overflow-hidden">
-          <img src={post.image} alt="" className="w-full h-full object-cover" loading="lazy" />
+          <img src={post.image} alt="" className="w-full h-full object-cover" loading="lazy" width={400} height={300} />
         </div>
       )}
 
@@ -113,7 +113,9 @@ const PostCard = ({ post }: PostCardProps) => {
             playsInline
             preload="metadata"
             className="w-full max-h-[500px] object-contain"
-          />
+          >
+            <track kind="captions" label="Français" srcLang="fr" default />
+          </video>
         </div>
       )}
 
@@ -136,9 +138,6 @@ const PostCard = ({ post }: PostCardProps) => {
         >
           <MessageCircle className="w-5 h-5 text-muted-foreground" />
           <span className="text-sm font-medium">{comments.length}</span>
-        </button>
-        <button className="ml-auto">
-          <Share2 className="w-5 h-5 text-muted-foreground" />
         </button>
       </div>
 

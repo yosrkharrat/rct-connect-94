@@ -1,10 +1,12 @@
 export type UserRole = 'admin' | 'coach' | 'group_admin' | 'member' | 'visitor';
+export type RunningLevel = 'débutant' | 'intermédiaire' | 'élite';
 
 export interface User {
   id: string;
   name: string;
   cin: string;
   role: UserRole;
+  level: RunningLevel;
   group?: string;
   avatar?: string;
   joinDate: string;

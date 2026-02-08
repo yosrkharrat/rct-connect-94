@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, MapPin, Clock, Users, Calendar } from 'lucide-react';
+import { ArrowLeft, MapPin, Clock, Users, Calendar, Mic } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { eventsApi } from '@/lib/api';
 
@@ -16,6 +16,30 @@ const CreateEventPage = () => {
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [voiceFilled, setVoiceFilled] = useState(false);
+
+  // Load voice-filled data from sessionStorage
+  useEffect(() => {
+    const voiceDraft = sessionStorage.getItem('voice_event_draft');
+    if (voiceDraft) {
+      try {
+        const data = JSON.parse(voiceDraft);
+        if (data.title) setTitle(data.title);
+        if (data.date) setDate(data.date);
+        if (data.time) setTime(data.time);
+        if (data.location) setLocation(data.location);
+        if (data.group) setGroup(data.group);
+        if (data.type && ['daily', 'weekly', 'race'].includes(data.type)) {
+          setType(data.type as 'daily' | 'weekly' | 'race');
+        }
+        if (data.description) setDescription(data.description);
+        setVoiceFilled(true);
+        sessionStorage.removeItem('voice_event_draft');
+      } catch (e) {
+        console.error('Error parsing voice draft:', e);
+      }
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,6 +81,11 @@ const CreateEventPage = () => {
           <ArrowLeft className="w-5 h-5" />
         </button>
         <h1 className="font-display font-extrabold text-xl">Créer un événement</h1>
+        {voiceFilled && (
+          <div className="ml-auto flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">
+            <Mic className="w-3 h-3" /> Rempli par l'assistant
+          </div>
+        )}
       </div>
 
       <form onSubmit={handleSubmit} className="px-4 space-y-4">

@@ -5,9 +5,9 @@ import { dbHelper } from '../db';
 
 const router = Router();
 
-const STRAVA_CLIENT_ID = process.env.STRAVA_CLIENT_ID || '200814';
-const STRAVA_CLIENT_SECRET = process.env.STRAVA_CLIENT_SECRET || '753819c9d1678c003dfde0227d9481fdfa206d60';
-const STRAVA_REDIRECT_URI = process.env.STRAVA_REDIRECT_URI || 'http://localhost:8080';
+const STRAVA_CLIENT_ID = process.env.STRAVA_CLIENT_ID || '201108';
+const STRAVA_CLIENT_SECRET = process.env.STRAVA_CLIENT_SECRET || 'd888e477fd768c12ef1ecaae844ec4e2b47f3eab';
+const STRAVA_REDIRECT_URI = process.env.STRAVA_REDIRECT_URI || 'http://localhost:8081/strava/callback';
 
 // GET /api/strava/auth - Get Strava OAuth URL
 router.get('/auth', authenticateToken, (req: AuthRequest, res) => {
@@ -261,6 +261,52 @@ router.get('/stats', authenticateToken, async (req: AuthRequest, res) => {
   } catch (error: any) {
     console.error('Strava stats error:', error.response?.data || error.message);
     res.status(500).json({ success: false, error: 'Erreur lors du chargement des stats' });
+  }
+});
+
+// POST /api/strava/sync-distance - Sync Strava distance to user profile
+router.post('/sync-distance', authenticateToken, async (req: AuthRequest, res) => {
+  try {
+    const userId = req.user!.userId;
+    const user = dbHelper.getUserById(userId);
+
+    if (!user || !user.strava_connected || !user.strava_id) {
+      return res.status(400).json({ success: false, error: 'Strava non connecté' });
+    }
+
+    const accessToken = await getValidAccessToken(userId);
+    if (!accessToken) {
+      return res.status(401).json({ success: false, error: 'Token Strava invalide' });
+    }
+
+    // Get Strava stats
+    const response = await axios.get(`https://www.strava.com/api/v3/athletes/${user.strava_id}/stats`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
+    const stats = response.data;
+    const totalDistance = stats.all_run_totals?.distance || 0; // in meters
+    const totalDistanceKm = Math.round(totalDistance / 1000); // convert to km
+    const totalRuns = stats.all_run_totals?.count || 0;
+
+    // Update user profile
+    dbHelper.updateUser(userId, {
+      distance: totalDistanceKm,
+      runs: totalRuns,
+    } as any);
+
+    console.log(`[Strava Sync] User ${userId}: ${totalDistanceKm}km, ${totalRuns} runs`);
+
+    res.json({
+      success: true,
+      data: {
+        distance: totalDistanceKm,
+        runs: totalRuns,
+      },
+    });
+  } catch (error: any) {
+    console.error('Strava sync error:', error.response?.data || error.message);
+    res.status(500).json({ success: false, error: 'Erreur lors de la synchronisation' });
   }
 });
 

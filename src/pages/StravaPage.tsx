@@ -1,5 +1,5 @@
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, ExternalLink, Activity, TrendingUp, Zap, RefreshCw, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
+import { ExternalLink, Activity, TrendingUp, Zap, RefreshCw, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { updateUser } from '@/lib/store';
 import { useState, useEffect } from 'react';
@@ -152,10 +152,7 @@ const StravaPage = () => {
   if (searchParams.get('code') && loading) {
     return (
       <div className="pb-20 pt-6">
-        <div className="flex items-center gap-3 px-4 mb-6">
-          <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-            <ArrowLeft className="w-5 h-5" />
-          </button>
+        <div className="px-4 mb-6">
           <h1 className="font-display font-extrabold text-xl">Strava</h1>
         </div>
         <div className="mx-4">
@@ -173,10 +170,7 @@ const StravaPage = () => {
 
   return (
     <div className="pb-20 pt-6">
-      <div className="flex items-center gap-3 px-4 mb-6">
-        <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-          <ArrowLeft className="w-5 h-5" />
-        </button>
+      <div className="px-4 mb-6">
         <h1 className="font-display font-extrabold text-xl">Strava</h1>
       </div>
 

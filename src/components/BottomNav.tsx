@@ -1,25 +1,28 @@
 import { NavLink } from "react-router-dom";
-import { Home, Calendar, MessageSquare, User, LogIn } from "lucide-react";
+import { Home, Calendar, User, LogIn, Flame, Activity } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-
-const allTabs = [
-  { to: "/", icon: Home, label: "Accueil", visitorAccess: true },
-  { to: "/calendar", icon: Calendar, label: "Événements", visitorAccess: true },
-  { to: "/messaging", icon: MessageSquare, label: "Messages", visitorAccess: false },
-  { to: "/profile", icon: User, label: "Profil", visitorAccess: false },
-];
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const BottomNav = () => {
   const { isLoggedIn, isVisitor } = useAuth();
+  const { t } = useLanguage();
+  
+  const allTabs = [
+    { to: "/", icon: Home, label: t('nav.home'), visitorAccess: true },
+    { to: "/calendar", icon: Calendar, label: t('nav.events'), visitorAccess: true },
+    { to: "/strava", icon: Activity, label: t('nav.strava'), visitorAccess: false },
+    { to: "/calories", icon: Flame, label: t('nav.calories'), visitorAccess: false },
+    { to: "/profile", icon: User, label: t('nav.profile'), visitorAccess: false },
+  ];
   
   // Visitors only see Events and Login
   const isVisitorOnly = isVisitor && !isLoggedIn;
   
   const tabs = isVisitorOnly 
     ? [
-        { to: "/", icon: Home, label: "Accueil" },
-        { to: "/calendar", icon: Calendar, label: "Événements" },
-        { to: "/login", icon: LogIn, label: "Connexion" },
+        { to: "/", icon: Home, label: t('nav.home') },
+        { to: "/calendar", icon: Calendar, label: t('nav.events') },
+        { to: "/login", icon: LogIn, label: t('nav.login') },
       ]
     : allTabs;
 

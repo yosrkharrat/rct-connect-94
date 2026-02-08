@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { Eye, EyeOff, Loader2, Shield, Dumbbell, Users } from 'lucide-react';
+import { Eye, EyeOff, Loader2, Shield, Dumbbell, Users, Mic } from 'lucide-react';
 import rctLogo from '@/assets/rct-logo.png';
 
 const demoAccounts = [
@@ -19,6 +19,23 @@ const LoginPage = () => {
   const [error, setError] = useState('');
   const [showDemo, setShowDemo] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [voiceFilled, setVoiceFilled] = useState(false);
+
+  // Load voice-filled data from sessionStorage
+  useEffect(() => {
+    const voiceDraft = sessionStorage.getItem('voice_login_draft');
+    if (voiceDraft) {
+      try {
+        const data = JSON.parse(voiceDraft);
+        if (data.email) setEmail(data.email);
+        if (data.password) setPassword(data.password);
+        setVoiceFilled(true);
+        sessionStorage.removeItem('voice_login_draft');
+      } catch (e) {
+        console.error('Error parsing voice draft:', e);
+      }
+    }
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,7 +67,7 @@ const LoginPage = () => {
       <div className="relative h-40 rct-gradient-hero flex items-end shrink-0">
         <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
         <div className="relative p-4 pb-8 w-full flex items-center gap-3">
-          <img src={rctLogo} alt="RCT Logo" className="h-14 w-14 drop-shadow-2xl" />
+          <img src={rctLogo} alt="RCT Logo" className="h-14 w-14 drop-shadow-2xl" width={56} height={56} />
           <div>
             <h1 className="font-display font-extrabold text-2xl text-white drop-shadow-lg">RCT</h1>
             <p className="text-white/80 font-body text-xs">Running Club Tunis</p>
@@ -61,7 +78,14 @@ const LoginPage = () => {
       {/* Login Form */}
       <div className="flex-1 px-5 -mt-4 flex flex-col justify-center">
         <div className="bg-card rounded-2xl rct-shadow-elevated p-5">
-          <h2 className="font-display font-bold text-lg mb-0.5">Connexion</h2>
+          <div className="flex items-center justify-between mb-0.5">
+            <h2 className="font-display font-bold text-lg">Connexion</h2>
+            {voiceFilled && (
+              <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">
+                <Mic className="w-3 h-3" /> Assistant
+              </div>
+            )}
+          </div>
           <p className="text-xs text-muted-foreground mb-4">Identifiez-vous pour accéder à votre espace</p>
 
           <form onSubmit={handleLogin} className="space-y-3">
